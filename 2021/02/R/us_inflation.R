@@ -49,5 +49,6 @@ transit_cost <- transit_cost %>%
   # adjust costs by inflation rate
   mutate(across(c(real_cost, cost_km_millions), 
                 .fns = ~.x * annual_inflation_to_reference, 
-                .names = "{col}_adj"))
+                .names = "{col}_adj")) %>% 
+  select(-annual_inflation, -annual_inflation_to_reference)
  
