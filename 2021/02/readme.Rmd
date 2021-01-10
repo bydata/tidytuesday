@@ -1,0 +1,14 @@
+---
+title: "#TidyTuesday Week 2 / 2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Project time to completion
+
+Which transit infrastructure projects took longest to be completed?
+
+![](plots/construction_duration.png)
