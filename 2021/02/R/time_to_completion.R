@@ -24,8 +24,8 @@ df <- transit_cost %>%
   mutate(country_name = countrycode::countrycode(country, origin = "ecb", destination = "country.name"),
          country_name = ifelse(country == "UK", "United Kingdom", country_name),
          end_year = na_if(end_year, "X"),
-         end_year = as.numeric(end_year),
          # this causes a few NAs since the column contains text for future projects
+         end_year = as.numeric(end_year),
          start_year = as.numeric(start_year),
          real_cost = as.numeric(real_cost),
          tunnel_per = str_remove_all(tunnel_per, "%") %>% as.numeric / 100,
@@ -34,7 +34,6 @@ df <- transit_cost %>%
   mutate(continent = countrycode::countrycode(country_name, 
                                               origin = "country.name", 
                                               destination = "continent")) 
-
 
 count(df, country_name, sort = TRUE)
 count(df, desc(end_year))

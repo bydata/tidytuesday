@@ -20,9 +20,9 @@ us_inflation <- html_node(page, css = "h3 + div table") %>%
   # discard the first 2 rows
   slice(-1:-2) %>% 
   mutate(across(everything(), as.numeric)) %>% 
+  # Data for Dec 2020 is not available yet, calculate the yearly average from 
   mutate(avg_new = rowMeans(select(., X2:X14), na.rm = TRUE),
          avg_new = round(avg_new, 1)) %>% 
-  # Data for Dec 2020 is not available yet, calculate the yearly average from 
   select(year = 1, annual_inflation = avg_new) 
 
 # load TidyTuesday data
