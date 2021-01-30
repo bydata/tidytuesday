@@ -118,5 +118,5 @@ g +
         plot.background = element_rect(color = NA, fill = "grey98"),
         plot.margin = margin(t = 12, l = 8, r = 8, b = 8))
 
-ggsave(file.path("plots", "sankey.png"), type = "cairo", dpi = 200, width = 6, height = 6.5)
+ggsave(file.path("plots", "breakfreefromplastic_companies_countries.png"), type = "cairo", dpi = 200, width = 6, height = 6.5)
 
