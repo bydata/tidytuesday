@@ -147,7 +147,7 @@ income_distribution %>%
                           Household income in USD adjusted to 2019 prices. 
                           Median of distributions highlighted.
                           "),
-       caption = "Data: | Visualization: @_ansgar",
+       caption = "Source: U.S. Census Bureau, Current Population Survey, Annual Social and Economic Supplements (CPS ASEC). Visualization: @_ansgar",
        x = NULL, y = NULL)
 
 ggsave("plots/income_distribution.png", type = "cairo", dpi = 200, width = 6, height = 4)
