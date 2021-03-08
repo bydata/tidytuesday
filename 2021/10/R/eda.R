@@ -109,23 +109,43 @@ raw_df %>%
 
 ## CORRELATION MATRIX: Which features are present =======================================
 
-cor_df <- 
+# cor_df <- 
+#   raw_df %>% 
+#   # exclude show_product quickly
+#   select(-show_product_quickly) %>% 
+#   select(funny:use_sex) %>% 
+#   mutate(across(everything(), as.numeric)) %>% 
+#   cor() %>% 
+#   as_tibble() 
+
+
+cor_mat <- 
   raw_df %>% 
   # exclude show_product quickly
-  select(-show_product_quickly) %>% 
+  select(-show_product_quickly) %>%
+  # first select relevant variables from data frame
   select(funny:use_sex) %>% 
+  # then order those variables alphabetically
+  select(colnames(.)[order(colnames(.))]) %>% 
   mutate(across(everything(), as.numeric)) %>% 
-  cor() %>% 
-  as_tibble() 
+  cor()
+cor_mat
+
+cor_mat <- cor_mat * upper.tri(cor_mat, diag = TRUE) 
+cor_mat[cor_mat == 0 ] <- NA
+
+cor_df <- as_tibble(cor_mat)
+cor_df
 
 colnames(cor_df) <- str_replace_all(colnames(cor_df), "_", " ") %>% 
-  str_to_title() 
+  str_to_upper() 
 
 cor_df <- cor_df %>% 
   mutate(var1 = colnames(.)) %>% 
   select(var1, everything()) %>% 
   pivot_longer(cols = -var1, names_to = "var2", values_to = "corr") %>% 
-  mutate(corr = ifelse(var1 == var2, NA, corr))
+  # filter(!is.na(corr)) %>% 
+  mutate(corr = ifelse(var1 == var2, NA, corr)) 
 
 ad_features_wide <- 
   raw_df %>% 
@@ -165,7 +185,7 @@ pairs <- bind_rows(pairs, unique_features) %>%
   mutate(n = n %/% n_to_group) %>% 
   # uncount duplicates rows according to weight variable (n)
   uncount(n) %>% 
-  mutate(across(c(item1, item2), ~str_replace_all(., "_", " ") %>% str_to_title()))
+  mutate(across(c(item1, item2), ~str_replace_all(., "_", " ") %>% str_to_upper()))
 
 
 pairs_coords <- pairs %>% 
@@ -181,7 +201,7 @@ pairs_coords <- pairs %>%
   mutate(x = as.numeric(item1) + (row_of_pair - 1) %% viz_cols  / (viz_cols * 1.25) - 0.3,
          y = length(levels(item2)) + 1 - as.numeric(item2) + (row_of_pair - 1) %/% viz_cols / (viz_cols * 1.25) - 0.3) %>% 
   ungroup() 
-  
+
 
 divergingx_palettes()
 palette <- "Purple-Green"
@@ -200,18 +220,23 @@ Source: FiveThirtyEight. Visualization: @_ansgar"
 cor_df %>% 
   ggplot(aes(var1, fct_rev(var2))) +
   # tiles indication correlations
+  # geom_tile(aes(fill = corr, col = is.na(corr), size = is.na(corr))) +
   geom_tile(aes(fill = corr), col = "grey98", size = 2) +
   # add icons for each n ads that contained crossed features
-  geom_text(data = pairs_coords, 
+  geom_text(data = anti_join(pairs_coords, cor_df[!is.na(cor_df$corr), ], 
+                             by = c("item1" = "var1", "item2" = "var2")),
             aes(x, y),
-            label = "\Uf44e", 
+            label = "\Uf44e",
             family = "Font Awesome 5 Free Solid",
-            col = "grey25", 
-            size = 2.5, alpha = 0.9,
+            # col = "grey25",
+            col = football_color,
+            size = 2, alpha = 0.9,
             # position = position_jitter(width = 0.33, height = 0.33)
             ) +
   scale_x_discrete(position = "top") +
   scale_fill_continuous_diverging(palette = palette, na.value = "grey98") +
+  scale_color_manual(values = c("FALSE" = "grey98", "TRUE" = "grey85")) +
+  scale_size_manual(values = c("FALSE" = 2, "TRUE" = 0.1)) +
   coord_equal() +
   labs(title = "Which contents go together in Super Bowl ads?",
        subtitle = plot_subtitle,
@@ -221,7 +246,9 @@ cor_df %>%
   theme(legend.position = "bottom",
         legend.key.height = unit(2, "mm"),
         legend.title = element_text(size = 5),
-        legend.text = element_text(size = 5))
+        legend.text = element_text(size = 5),
+        axis.text = element_text(family = "Barlow SemiBold"),
+        plot.subtitle = element_markdown(margin = margin(t = 8, b = 18)))
 
 ggsave("plots/ads_corrmatrix.png", type = "cairo", dpi = 200, width = 6, height = 6)
 
