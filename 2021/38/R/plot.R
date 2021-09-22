@@ -40,11 +40,11 @@ theme_custom <- function(dark = FALSE, base_family = "Lato", ...) {
         margin = margin(t = 16, b = 10),
         lineheight = 1.3
       ),
-      plot.subtitle = element_markdown(
-        family = "Lato",
-        size = 6,
+      plot.subtitle = element_textbox_simple(
+        family = "Lato Light",
+        size = 6.5, color = "grey10",
         margin = margin(b = 8),
-        lineheight = 1.25
+        lineheight = 1.3
       ),
       plot.caption = element_markdown(
         hjust = 0,
@@ -125,52 +125,39 @@ plot_palette <- c("Death of Artist" = "grey10", "Christmas" = "#BB2528",
 titles <- list(
   "title" = "Late return to the Billboard Hot 100",
   "subtitle" = glue(
-    "These songs re-entered the charts long after they had<br>
-     dropped out of the Billboard Hot 100.
+    "These songs re-entered the charts long after they had dropped out of the 
+    Billboard Hot 100.
      <br><br>
-      At the top is Chuck Berry's \"Run Rudolph Run,\"<br>
-    which returned to the Billboard Hot 100 after an <br>
-    incredible 60 years.
+    The bars represent the period between the previous last appearance and 
+    the return to the Billboard Hot 100.
     <br><br>
-    The bars represent the period betweet the previous<br>
-    last appearance and the return to the Billboard Hot 100.
+      At the top is Chuck Berry's \"Run Rudolph Run,\" which returned to the 
+      Billboard Hot 100 after an incredible 60 years.
     <br><br>
-    The main reasons that a song re-enters after such a long<br>
-    time are newfound popularity during the 
-    <b style='color:{plot_palette[\"Christmas\"]}'>Christmas<br>
-    season</b>,
+    The main reasons that a song re-enters after such a long time are newfound 
+    popularity during the 
+    <b style='color:{plot_palette[\"Christmas\"]}'>Christmas season</b>,
     <b style='color:{plot_palette[\"Death of Artist\"]}'>the death of an artist</b>, 
-    or use in a <b style='color:{plot_palette[\"Movie\"]}'>movie<br>
-    soundtrack</b>.
+    or use in a <b style='color:{plot_palette[\"Movie\"]}'>movie soundtrack</b>.
     <br><br>
-    \"Bohemian Rhapsody\" even managed to do this twice:<br>
-    in 1992 thanks to \"Wayne's World\" and in 2018 because<br>
-    of the same-titled movie.
+    \"Bohemian Rhapsody\" even managed to do this twice: 
+    in 1992 thanks to \"Wayne's World\" and in 2018 because of the same-titled 
+    movie.
     <br><br>
-    \"Dreams\", \"Billie Jean\", and \"Livin' On A Prayer\"<br>
-    made a comeback in the U.S. singles charts thanks to <br>
-    their appearance in 
+    \"Dreams\", \"Billie Jean\", and \"Livin' On A Prayer\" made a comeback to 
+    the U.S. singles charts thanks to their appearance in 
     <b style='color:{plot_palette[\"Viral\"]}'>
     viral videos</b> (TikTok, YouTube).
     <br><br>
-    Finally, Michael Jackson's \"Thriller\" gained new<br>
-    popularity during
+    Finally, Michael Jackson's \"Thriller\" gained new popularity during
     <b style='color:{plot_palette[\"Other\"]}'>
-    Halloween</b> and made the Top 100<br>
-    in 2016.
+    Halloween</b> and made the Top 100 in 2016.
     "
   ),
   "caption" = "Data: **Data.World**, **Billboard.com** | Visualization: **@_ansgar**"
 )
 
-# <b style='color:{plot_palette[\"Christmas\"]}'>
-# <b style='color:{plot_palette[\"Death of Artist\"]}'>
-
-p_subtitle <- 
-  ggplot() +
-  labs(subtitle = titles$subtitle)
-
-p <- bb_time %>% 
+df_plot <- bb_time %>% 
   slice_max(order_by = days_since_last_entry, n = 25) %>% 
   bind_rows(filter(bb_time, song == "Bohemian Rhapsody" & performer == "Queen")) %>% 
   distinct() %>% 
@@ -201,34 +188,56 @@ p <- bb_time %>%
            # https://www.billboard.com/articles/columns/chart-beat/6099413/michael-jackson-billie-jean-hot-100-return-xscape
            song == "Billie Jean" & performer == "Michael Jackson" ~ "Viral",
            TRUE ~ "Other"
-         )) %>% 
+         )) 
+
+
+# The subtitle to be plotted on the left-hand side
+p_subtitle <- 
+  ggplot() +
+  labs(subtitle = titles$subtitle)
+
+
+# The actual plot
+p <- df_plot %>% 
   ggplot() +
   geom_segment(data = . %>% filter(!(song == "Bohemian Rhapsody" & 
-                                     week == as_date("1992-03-21"))),
+                                       week == as_date("1992-03-21"))),
                aes(x = label, xend = label, 
                    y = previous_week_on_bb, yend = week,
                    col = reason),
-               size = 3, alpha = 0.75, show.legend = FALSE) +
+               size = 0.25, alpha = 0.75, show.legend = FALSE) +
+  geom_point(data = . %>% filter(!(song == "Bohemian Rhapsody" & 
+                                     week == as_date("1992-03-21"))),
+             aes(x = label, y = previous_week_on_bb, fill = reason),
+             shape = 21, col = "white", show.legend = FALSE) +
+  geom_point(data = . %>% filter(!(song == "Bohemian Rhapsody" & 
+                                     week == as_date("1992-03-21"))),
+             aes(x = label, y = week, fill = reason),
+             shape = 21, col = "white", show.legend = FALSE) +
   geom_text(data = . %>% filter(!(song == "Bohemian Rhapsody" & 
                                     week == as_date("1992-03-21"))),
             aes(label, label_pos_date, label = label),
-            size = 1.5, col = "white") +
+            size = 1.5, col = "grey15", nudge_x = 0.3, family = "Lato") +
+  # 1st appearance of Bohemian Rhapsody
   geom_segment(data = . %>% filter(song == "Bohemian Rhapsody" & 
                                      week == as_date("1992-03-21")),
                aes(x = label, xend = label, 
                    y = previous_week_on_bb, yend = week,
-                   col = reason, lty = "dashed"),
-               size = 3, alpha = 0.2, show.legend = FALSE) +
-  # geom_text(aes(label, previous_week_on_bb, 
-  #               label = format(previous_week_on_bb, "%y/%m/%d")),
-  #           size = 1.75) +
-  scale_color_manual(values = plot_palette) +
+                   col = reason),
+               size = 0.25, alpha = 0.2, show.legend = FALSE) +
+  geom_point(data = . %>% filter(song == "Bohemian Rhapsody" & 
+                                     week == as_date("1992-03-21")),
+             aes(x = label, y = previous_week_on_bb, fill = reason),
+             shape = 21, col = "white", alpha = 0.2, show.legend = FALSE) +
+  scale_color_manual(values = plot_palette, aesthetics = c("color", "fill")) +
   coord_flip() +
   labs(subtitle = NULL) +
   theme(axis.text.y = element_blank(),
         axis.title = element_blank(),
         panel.grid.major.y = element_blank())
 
+
+# Plot layout for patchwork
 plot_design <- "
   122
 "
@@ -240,6 +249,6 @@ p_subtitle + p +
   plot_annotation(title = titles$title,
                   subtitle = NULL,
                   caption = titles$caption) &
-  theme(plot.subtitle = element_markdown(margin = margin(t = 5, b = -200)))
+  theme(plot.subtitle = element_textbox_simple(margin = margin(t = 5, b = -200)))
 invisible(dev.off())
 
