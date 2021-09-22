@@ -2,10 +2,6 @@ pacman::p_load("tidyverse",
 "tidytuesdayR",
 "lubridate",
 "ggtext",
-"colorspace",
-"wesanderson",
-"ggraph",
-"tidygraph",
 "patchwork",
 "here",
 "glue")
@@ -74,10 +70,6 @@ theme_custom <- function(dark = FALSE, base_family = "Lato", ...) {
 
 theme_set(theme_custom(dark = FALSE))
 
-source(here("color_palettes.R"))
-
-#' Source & dataset description: 
-#' https://github.com/rfordatascience/tidytuesday/tree/master/data/2021/2021-02-02
 
 filepath_data <- here("2021", "38", "data", "tuesdata.rds")
 
