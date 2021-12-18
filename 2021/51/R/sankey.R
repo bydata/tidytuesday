@@ -158,3 +158,6 @@ ggplot(df_sankey, aes(x = x,
 ggsave(here("2021", "51", "plots", "spice_sankey.png"), dpi = 200, device = ragg::agg_png,
        width = 7, height = 5)
 
+ggsave(here("2021", "51", "plots", "spice_sankey_hi-res.png"), dpi = 1000, device = ragg::agg_png,
+       width = 7, height = 5)
+
