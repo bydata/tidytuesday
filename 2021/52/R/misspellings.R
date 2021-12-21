@@ -1,8 +1,6 @@
 # devtools::install_github("BlakeRMills/MetBrewer") 
 pacman::p_load("tidyverse", "ggtext", "here", "MetBrewer")
 
-
-misspellings <- c("Ansga", "Asgar", "Anska", "Anskar", "Oskar")
 misspellings <- c("Hansgar", "Anskar", "Ansga", "Asgar", "Anska", "Oskar")
 df <- tibble(spelling = misspellings, row = seq_along(misspellings))
 
