@@ -34,7 +34,7 @@ graph <- c1 %>%
 # color palette: https://colors.dopely.top/palettes/gZKp0nH2lcx
 
 plot_titles <- list(
-  title = "Coffee Characteristics",
+  title = "Chocolate Characteristics",
   subtitle = "Most memorable characteristics which are frequently mentioned 
   together in reviews (at least 10 chocolate bars). The width of the bars 
   indicates the number of times two characteristics were stated jointly for a 
