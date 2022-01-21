@@ -44,9 +44,7 @@ plot_titles <- list(
 
 p <- graph %>%
   ggraph(layout = "circle") +
-  geom_edge_arc(aes(edge_width = n, 
-                    #label = n
-                    ),
+  geom_edge_arc(aes(edge_width = n),
                 alpha = 0.6,
                  edge_colour = "#896B60") +
   geom_node_point(aes(size = total), shape = 21, fill = "#F5F2EA", col = "#4A332D") +
