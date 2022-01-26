@@ -5,21 +5,7 @@ tuesdata <- tidytuesdayR::tt_load("2022-01-25")
 ratings <- tuesdata$ratings
 details <- tuesdata$details
 
-
-ratings %>% 
-  filter(bayes_average > 0) %>% 
-  ggplot(aes(bayes_average)) +
-  stat_dots(quantiles = 100)
-
-ratings %>% 
-  filter(average > 0) %>% 
-  ggplot(aes(average)) +
-  stat_dots(quantiles = 100)
-
-
-## graph of mechanics -------------------
-
-
+# prepare board game mechanics in long format
 mechanics <- details %>% 
   select(id, primary, boardgamemechanic) %>% 
   mutate(boardgamemechanic = str_remove_all(boardgamemechanic, "[\\[\\]']")) %>% 
@@ -32,7 +18,6 @@ graph <- mechanics %>%
   as_tbl_graph(directed = FALSE) %>% 
   activate(nodes) %>% 
   inner_join(count(mechanics, boardgamemechanic), by = c("name" = "boardgamemechanic"))
-
 
 set.seed(123)
 p <- graph %>% 
@@ -59,7 +44,9 @@ p <- graph %>%
     A board game might combine multiple game mechanics.
     The thicker an <b style='color:#5B3B13'>edge</b> in this graph, 
     the more board games share the two mechanics connected by this particular edge. 
-    The size of the <b style='color:#CEAF50'>nodes</b> indicates how many board games use this mechanic.",
+    The size of the <b style='color:#CEAF50'>nodes</b> indicates how many 
+    board games use this mechanic. *(Only board game mechanics used in at least 
+    1,000 board games are displayed.)*",
     caption = "Source: **Board Games Geek** | Visualization: **Ansgar Wolsing**",
     edge_width = "Number of games sharing these two mechanics",
     size = "Number of games"
