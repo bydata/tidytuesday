@@ -5,7 +5,9 @@ output: github_document
 
 ## Dataset
 
-The locations of the aerial victories of the Tuskegee Airmen during World War 2 have been extracted from documents on [tuskegeeairmen.org](https://tuskegeeairmen.org) and provided as a [tsv file](tuskegee_airmen_victory_locations.tsv).
+The approximate locations of the aerial victories of the Tuskegee Airmen during World War 2 have been extracted from documents on [tuskegeeairmen.org](https://tuskegeeairmen.org) and provided as a [tsv file](tuskegee_airmen_victory_locations.tsv).
+
+### Variables
 
 | Variable | Description |
 |----------|-------------|
@@ -70,6 +72,8 @@ locations <- read_tsv(here::here(base_path, "data", "tuskegee_airmen_victory_loc
   separate(lat_lon, into = c("lat", "lon"), sep = ",") %>% 
   mutate(across(c(lat, lon), as.numeric))
 
+knitr::kable(head(locations))
+
 
 aerial_victories_locations <- aerial_victories %>% 
   inner_join(locations, by = c("aerial_victory_date" = "date")) %>% 
@@ -78,6 +82,8 @@ aerial_victories_locations <- aerial_victories %>%
 
 ```
 
+
+## Aerial victory locations on a map
 
 ```{r fig.retina=2}
 

@@ -3,10 +3,12 @@ Tuskegee Airmen: Locations of Aerial Victories
 
 ## Dataset
 
-The locations of the aerial victories of the Tuskegee Airmen during
-World War 2 have been extracted from documents on
+The approximate locations of the aerial victories of the Tuskegee Airmen
+during World War 2 have been extracted from documents on
 [tuskegeeairmen.org](https://tuskegeeairmen.org) and provided as a [tsv
 file](tuskegee_airmen_victory_locations.tsv).
+
+### Variables
 
 | Variable         | Description                                                              |
 |------------------|--------------------------------------------------------------------------|
@@ -79,11 +81,26 @@ locations <- read_tsv(here::here(base_path, "data", "tuskegee_airmen_victory_loc
     ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 ``` r
+knitr::kable(head(locations))
+```
+
+| date       | text\_location       | approx\_location     |      lat |      lon | source |
+|:-----------|:---------------------|:---------------------|---------:|---------:|-------:|
+| 1943-07-02 | Castelvetrano, Italy | Castelvetrano, Italy | 37.67851 | 12.79178 |      1 |
+| 1944-01-27 | Anzio, Italy         | Anzio, Italy         | 41.44960 | 12.61973 |      1 |
+| 1944-01-28 | Anzio, Italy         | Anzio, Italy         | 41.44960 | 12.61973 |      1 |
+| 1944-02-05 | Anzio, Italy         | Anzio, Italy         | 41.44960 | 12.61973 |      1 |
+| 1944-02-07 | Anzio, Italy         | Anzio, Italy         | 41.44960 | 12.61973 |      1 |
+| 1944-06-09 | Udine area, Italy    | Udine, Italy         | 46.07107 | 13.23458 |      1 |
+
+``` r
 aerial_victories_locations <- aerial_victories %>% 
   inner_join(locations, by = c("aerial_victory_date" = "date")) %>% 
   group_by(approx_location, lat, lon) %>% 
   summarize(aerial_victory_credits = sum(aerial_victory_credits), .groups = "drop")
 ```
+
+## Aerial victory locations on a map
 
 ``` r
 europe <- rnaturalearth::ne_countries(scale = 50, continent = "Europe", 
