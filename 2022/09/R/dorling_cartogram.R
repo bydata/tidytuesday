@@ -81,8 +81,11 @@ total_stations_n_fmt <- scales::number(total_stations_n, big.mark = ",")
 plot_titles <- list(
   title = "Electric vehicle charging stations in the U.S.",
   subtitle = glue::glue("{total_stations_n_fmt} electric charging stations are available 
-                        in the U.S. as of 2022. Vermont has the highest number of 
-                        electric charging stations per 100,000 cars (any type of engine), with 148."),
+                        in the U.S. as of 2022. Each bubble represents a state. 
+                        The size of the bubbles indicates the  number of 
+                        electric charging stations per 100,000 cars 
+                        (any type of engine). 
+                        Vermont has the highest with 148."),
   caption = "**Source:** U.S. Department of Transportation | 
   **Visualization**: Ansgar Wolsing | #TidyTuesday",
   fill = "Number of electric charging stations<br>per 100,000 cars")
@@ -106,7 +109,7 @@ dorling %>%
   scale_fill_got(option = "Greyjoy", breaks = c(40, 80, 120)) +
   scale_size_continuous(range = c(1.5, 7)) +
   guides(fill = guide_colorsteps(title.position = "top", barwidth = unit(5, "cm"),
-                                 barheight = unit(0.5, "cm"))) +
+                                 barheight = unit(0.4, "cm"))) +
   labs(
     title = plot_titles$title,
     subtitle = plot_titles$subtitle,
@@ -119,7 +122,7 @@ dorling %>%
     plot.margin = margin(2, 6, 6, 6),
     plot.title = element_markdown(family = "Raleway SemiBold", size = 16),
     plot.subtitle = element_textbox_simple(
-      margin = margin(t = 12, b = 8)
+      margin = margin(t = 6, b = 6)
     ),
     plot.caption = element_markdown(hjust = 0, color = "grey18",
                                     margin = margin(t = 8)),
