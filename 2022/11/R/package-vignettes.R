@@ -67,7 +67,7 @@ df_combined <- map_df(list("CRAN" = cran, "Bioconductor" = bioc),
 pal <- c("#FFACAC", "grey65", "grey83", "#1A4155")
 
 subtitle = glue::glue("
-<b style='color:{pal[4]}'>RMarkdown</b> (Rmd) has gained increasing popularity 
+<b style='color:{pal[4]}'>RMarkdown</b> (Rmd) has gained continuously increasing popularity 
 since vignettes in 
 formats other than <b style='color:{pal[1]}'>Sweave</b> have been supported 
 in R version 3.0.0 in 2013. Since 2016, the majority of newly added or updated packages
@@ -94,22 +94,25 @@ df_combined %>%
   ggplot(aes(year, n, fill = vignette_type)) +
   geom_col(aes(), col = "white", size = 0.2,  position = "fill") +
   geom_label(# data = . %>% filter(highlight),
-            aes(label = n2), position = "fill", size = 3,
-            family = "Fira Sans Medium", color = "grey4", fill = "white",
-            label.size = 0) +
+    aes(label = n2), position = "fill", size = 3,
+    family = "Fira Sans Medium", color = "grey4", fill = "white",
+    label.size = 0) +
+  
   # annotation for Rmd becoming most popular
   shadowtext::geom_shadowtext(
     data = data.frame(repository = c("Bioconductor", "CRAN"), 
                       year = c(2019, 2016), n = c(0.75, 0.5)),
-            aes(year, n, label = "First year\nwith more\nRmd vignettes"), 
+    aes(year, n, label = "First year\nwith more\nRmd vignettes"), 
     inherit.aes = FALSE, size = 3.5, family = "Fira Sans", hjust = 0, 
     color = "grey4", nudge_x = -0.4, lineheight = 0.9, bg.colour = "white"
-    ) +
-  geom_curve(data = data.frame(repository = c("Bioconductor", "CRAN"), 
-                               year = c(2019, 2016), 
-                               n = c(0.8, 0.6)),
-             aes(x = year, xend = year - 0.1, y = n - 0.2, yend = c(0.45, 0.3)),
-             inherit.aes = FALSE, size = 0.2, color = "grey12", curvature = 0.1) +
+  ) +
+  geom_curve(
+    data = data.frame(
+      repository = c("Bioconductor", "CRAN"), year = c(2019, 2016), 
+      n = c(0.8, 0.6)),
+    aes(x = year, xend = year - 0.1, y = n - 0.2, yend = c(0.475, 0.3)),
+    inherit.aes = FALSE, size = 0.2, color = "grey12", curvature = 0.1) +
+  
   scale_fill_manual(values = pal) +
   scale_y_continuous(labels = scales::percent_format()) +
   facet_wrap(vars(repository), nrow = 2) +
