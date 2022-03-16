@@ -117,7 +117,7 @@ df_combined %>%
   scale_y_continuous(labels = scales::percent_format()) +
   facet_wrap(vars(repository), nrow = 2) +
   labs(
-    title = "RMarkdown increasingly popular",
+    title = "RMarkdown increasingly popular for package documentation",
     subtitle = subtitle,
     caption = "**Source:** Data retrieved by Robert Flight | **Visualization:** Ansgar Wolsing",
     x = NULL,
