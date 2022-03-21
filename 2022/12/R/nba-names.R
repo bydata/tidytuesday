@@ -14,7 +14,6 @@ babynames <- tuesdata$babynames
 glimpse(babynames)
 
 
-
 ## EDA  ------------------------------------------------------------------------
 
 babynames %>% 
@@ -24,51 +23,7 @@ babynames %>%
 # ==> names seems to be capped at a minimum value of 5
 
 
-# count of different babynames
-babynames %>% 
-  count(year, sex, name = "n_distinct") %>% 
-  ggplot(aes(year, n_distinct, col = sex)) +
-  geom_line()
-
-
-
-# "Trending names"  ---------
-trends <- babynames %>% 
-  group_by(name, sex) %>% 
-  arrange(year, .by_group = TRUE) %>% 
-  mutate(change = prop / lag(prop) - 1) %>% 
-  filter(prop > 0.005)
-
-
-## BEATLES ----------------------
-
-#' On 7 February 1964, the Beatles arrived at John F Kennedy airport in New York, 
-#' greeted by thousands of screaming fans. This Daily Mirror article documents 
-#' Beatlemania crossing the Atlantic, as the band dubbed the Fab Four arrived to 
-#' play their first concerts in America.
-
-beatles_names <- c("John", "Paul", "George", "Ringo")
-
-babynames %>% 
-  filter(name %in% beatles_names, sex == "M") %>% 
-  filter(year >= 1930) %>% 
-  ggplot(aes(year, prop, col = name)) +
-   geom_line() +
-  geom_vline(xintercept = 1964)
-
-## BEATLES ----------------------
-
-# draft year in comments
-basketball_names <- c(
-  "Michael",   # 1984
-  "Lebron",    # 2003
-  "Kobe",      # 1996
-  "Hakeem",    # 1984
-  "Kareem",    # 1969
-  "Shaquille",  # 1992
-  "Julius"     # 1972
-                      )
-
+## BASKETBALL PLAYERS ----------------------------------------------------------
 
 basketball_players <- tribble(
   ~name,      ~full_name,              ~draft_year, ~career_end, ~birth_year,
@@ -83,17 +38,23 @@ basketball_players <- tribble(
   "Dominique", "Dominique Wilkins",     1982,       1999,         1960,
   "Klay",      "Klay Thompson",         2011,         NA,         1990,
 # "Isiah",     "Isiah Thomas",          1981,       1994,         1961,
-  "Kyrie",     "Kyrie",                 2011,         NA,         1992
+  "Kyrie",     "Kyrie Irving",          2011,         NA,         1992
 ) 
 
 
-# babynames %>% 
-#   filter(name %in% basketball_names, sex == "M") %>% 
-#   filter(year >= 1930) %>% 
-#   ggplot(aes(year, prop, col = name)) +
-#   geom_line() +
-#   scale_y_continuous(labels = scales::percent_format(accuracy = 0.001)) +
-#   facet_wrap(vars(name), scales = "free_y")
+
+# Annotations
+plot_titles <- list(
+  title = "Popularity of NBA Player Names",
+  subtitle = "The graph shows the number of children (identified as male) born in 
+  the U.S. with the name of the respective NBA professional by year.
+  The colored area marks the active career of the players. 
+  Note the different scaling of the y-axis.
+  And please remember: correlation does not imply causation.",
+  caption = "**Source:** {babynames} R package, Hadley Wickham | 
+  **Visualization:** Ansgar Wolsing | <br>
+  **Image credit:** Reisio, Public domain, via Wikimedia Commons"
+)
 
 babynames %>% 
   filter(name %in% basketball_players$name, sex == "M") %>% 
@@ -111,35 +72,48 @@ babynames %>%
     name_label = fct_reorder(name_label, -name_max_n)) %>% 
   filter(year >= 1950) %>% 
   ggplot(aes(year, n)) +
+  # basketball background
+  geom_richtext(
+    aes(x = min(year), y = 0, 
+        label = glue::glue("<img src='{here(base_path, \"Basketball.png\")}'>")), 
+    stat = "unique") + 
   # area for active player career
   geom_rect(aes(xmin = draft_year, xmax = career_end, ymin = -Inf, ymax = Inf),
             inherit.aes = FALSE,
-            stat = "unique", fill = "#AD3F24", alpha = 0.4) +
+            stat = "unique", fill = "white", alpha = 0.4) +
   # line: name popularity
-  geom_line() +
-  # geom_point(aes(x = birth_year, y = 0), 
-  #            stat = "unique", size = 4, shape = 21, color = "white", fill = "#AD3F24") + 
-  # scale_x_continuous(expand = c(0, 0)) +
+  geom_line(size = 0.8, color = "white") +
   scale_y_continuous() +
   coord_cartesian(xlim = c(NA, max(babynames$year))) +
   facet_wrap(vars(name_label), scales = "free_y", nrow = 3) +
+  labs(
+    title = plot_titles$title,
+    subtitle = plot_titles$subtitle,
+    caption = plot_titles$caption
+  ) + 
   theme_minimal(base_family = "Helvetica") +
   theme(
-    plot.background = element_rect(color = NA, fill = "#D9C48B"),
+    plot.background = element_rect(color = NA, fill = "white"),
     panel.grid.major = element_line(color = "white", size = 0.2),
     panel.grid.minor.x = element_line(color = "white", size = 0.075),
     panel.grid.minor.y = element_blank(),
-    strip.text = element_markdown(family = "Bangers", size = 12, hjust = 0,
-                              margin = margin(t = 12, b = 4)),
+    strip.text = element_markdown(
+      family = "Bangers", size = 12, hjust = 0, lineheight = 0.8, 
+      margin = margin(t = 12, b = 4)),
+    plot.title = element_text(face = "bold", size = 18),
+    plot.title.position = "plot",
+    plot.subtitle = element_textbox_simple(
+      size = 9, margin = margin(t = 4, b = 8)
+    ),
+    plot.caption = element_markdown(
+      hjust = 0, margin = margin(t = 8), size = 7, color = "grey30"),
     axis.title = element_blank(),
-    text = element_text(color = "grey4"),
-    plot.margin = margin(t = 4, b = 4, l = 8, r = 18)
+    text = element_text(color = "grey4", lineheight = 1.25),
+    plot.margin = margin(t = 8, b = 4, l = 8, r = 18)
   )
-ggsave(here(base_path, "plots", "nba-names.png"), width = 7, height = 7)
-
+ggsave(here(base_path, "plots", "nba-names.png"), width = 6, height = 6)
 
 
 #' Image credit:
 #' Reisio, Public domain, via Wikimedia Commons
 #' https://commons.wikimedia.org/wiki/File:Basketball.png
-
