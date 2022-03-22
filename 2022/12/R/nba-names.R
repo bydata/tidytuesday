@@ -27,7 +27,7 @@ babynames %>%
 
 basketball_players <- tribble(
   ~name,      ~full_name,              ~draft_year, ~career_end, ~birth_year,
-# "Michael",   "Michael Jordan",        1984,       2003,         1963,
+#  "Michael",   "Michael Jordan",        1984,       2003,         1963,
   "Lebron",    "LeBron James",          2003,         NA,         1984, 
   "Kobe",      "Kobe Bryant",           1996,       2016,         1978,
   "Hakeem",    "Hakeem Olajuwon",       1984,       2002,         1963,
@@ -37,8 +37,9 @@ basketball_players <- tribble(
   "Carmelo",   "Carmelo Anthony",       2003,         NA,         1984,
   "Dominique", "Dominique Wilkins",     1982,       1999,         1960,
   "Klay",      "Klay Thompson",         2011,         NA,         1990,
-# "Isiah",     "Isiah Thomas",          1981,       1994,         1961,
-  "Kyrie",     "Kyrie Irving",          2011,         NA,         1992
+#  "Isiah",     "Isiah Thomas",          1981,       1994,         1961,
+  "Kyrie",     "Kyrie Irving",          2011,         NA,         1992,
+#  "Moses",     "Moses Malone",          1974,       1995,         1955
 ) 
 
 
@@ -46,13 +47,14 @@ basketball_players <- tribble(
 # Annotations
 plot_titles <- list(
   title = "Popularity of NBA Player Names",
-  subtitle = "The graph shows the number of children (identified as male) born in 
-  the U.S. with the name of the respective NBA professional by year.
+  subtitle = "The graph shows the **number of children** (identified as male) born in 
+  the U.S. with the given name of the respective NBA professional by year.
   The colored area marks the active career of the players. 
   Note the different scaling of the y-axis.
   And please remember: correlation does not imply causation.",
-  caption = "**Source:** {babynames} R package, Hadley Wickham | 
-  **Visualization:** Ansgar Wolsing | <br>
+  caption = "Period: 1950 to 2017. Names with less than 5 cases in a year are not reported in the dataset.<br>
+  **Source:** {babynames} R package, Hadley Wickham | 
+  **Visualization:** Ansgar Wolsing. <br>
   **Image credit:** Reisio, Public domain, via Wikimedia Commons"
 )
 
@@ -108,6 +110,7 @@ babynames %>%
     plot.caption = element_markdown(
       hjust = 0, margin = margin(t = 8), size = 7, color = "grey30"),
     axis.title = element_blank(),
+    axis.text = element_text(size = 6),
     text = element_text(color = "grey4", lineheight = 1.25),
     plot.margin = margin(t = 8, b = 4, l = 8, r = 18)
   )
