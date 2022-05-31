@@ -41,6 +41,17 @@ poll_long %>%
       label = company, hjust = ifelse(year == max(year), 0, 1)),
     size = 3.5, family = "Barlow SemiBold"
   ) +
+  annotate(
+    GeomTextBox,
+    x = 2019, y = 80, 
+    label = "Facebook's reputation dropped in 2019 amid privacy concerns and
+           allegations of election interference.",
+    hjust = 0, color = "grey14", fill = NA, box.size = 0,
+    family = base_family, size = 2.5
+    ) +
+  annotate(
+    "segment",
+    x = 2019.1, xend = 2019, y = 85.5, yend = 92, color = "grey14", size = 0.2) +
   guides(color = "none") +
   labs(
     title = "Reputation of FAANG companies",
