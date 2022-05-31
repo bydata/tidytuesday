@@ -56,7 +56,7 @@ poll_long %>%
   labs(
     title = "Reputation of FAANG companies",
     subtitle = "How did tech companies Facebook (Meta), Amazon, Apple, Netflix
-    and Google (Alphabet), short \"FAANG\", fared from 2017 to 2022 in the annual Axios Harris Poll 100, 
+    and Google (Alphabet), short \"FAANG\", fare from 2017 to 2022 in the annual Axios Harris Poll 100, 
     which gauges corporate awareness and reputation among the U.S. public?",
     caption = "**Source:** Axios Harris Poll 100. **Visualization:** Ansgar Wolsing"
   ) +
