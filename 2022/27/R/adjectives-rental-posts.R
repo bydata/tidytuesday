@@ -54,15 +54,18 @@ The 15 most frequent adjectives are shown.
 ")
 
 p <- rent_title_words %>% 
+  # keep only the adjectives - exclude some mis-coded words manually
   filter(!word %in% c("san", "pic", "flat")) %>% 
-  # mutate(is_adj = word %in% adjectives$token) %>% 
-  # filter(is_adj) %>% 
   semi_join(adjectives, by = c("word" = "token")) %>% 
-  add_count(word, name = "word_total") %>% 
+  # add_count(word, name = "word_total") %>% 
+  group_by(word) %>% 
+  mutate(word_total = n(),
+            mean_price = mean(price)) %>% 
+  ungroup() %>% 
   nest(data = -c(word, word_total)) %>% 
   slice_max(word_total, n = 15) %>% 
   unnest(cols = data) %>% 
-  mutate(word = fct_reorder(word, -price)) %>% 
+  mutate(word = fct_reorder(word, -mean_price)) %>% 
   ggplot(aes(word, price)) +
   stat_halfeye(fill_type = "segments", alpha = 0.3) +
   stat_interval() +
@@ -104,8 +107,6 @@ p <- rent_title_words %>%
     plot.margin = margin(4, 4, 4, 4)
   )
 p
-ggsave(here(base_path, "plots", "rental-posts-adjectives-price.png"),
-       dpi = 400, width = 7, height = 6)
 
 
 ## Custom plot legend
@@ -136,9 +137,9 @@ p_legend <- df_for_legend %>%
     stat = "unique", curvature = 0.2, size = 0.2, color = "grey12",
     arrow = arrow(angle = 20, length = unit(1, "mm"))
   ) +
-  scale_y_continuous(limits = c(NA, 6500)) +
+  # scale_y_continuous(limits = c(NA, 6500)) +
   scale_color_manual(values = MetBrewer::met.brewer("VanGogh3")) +
-  coord_flip(xlim = c(0.75, 1.3), ylim = c(0, 6000), expand = TRUE, clip = "off") +
+  coord_flip(xlim = c(0.75, 1.3), ylim = c(0, 6000), expand = TRUE) +
   guides(color = "none") +
   labs(title = "Legend") +
   theme_void(base_family = font_family) +
