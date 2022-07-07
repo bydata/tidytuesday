@@ -20,7 +20,7 @@ stopwords_iso_en <- stopwords::stopwords("en", "stopwords-iso")
 
 # Tokenize words
 rent_title_words <- rent %>% 
-  select(post_id, year, price, title) %>% 
+  select(post_id, year, title, price, beds) %>% 
   unnest_tokens(word, title, token = "words") %>% 
   filter(!word %in% stopwords_iso_en)
 
@@ -42,8 +42,8 @@ mean_price <- mean(rent$price, na.rm = TRUE)
 # number of rental posts
 n_rental_posts <- nrow(subset(rent, !is.na(title)))
 
-# background color for the plot
 bg_color <- "grey97"
+font_family <- "Fira Sans"
 
 plot_subtitle = glue("Adjectives used to describe houses and apartments
 in the San Francisco Bay Area in the titles of rental posts on Craigslist and 
@@ -60,7 +60,8 @@ p <- rent_title_words %>%
   # add_count(word, name = "word_total") %>% 
   group_by(word) %>% 
   mutate(word_total = n(),
-            mean_price = mean(price)) %>% 
+         mean_price = mean(price),
+         mean_beds = mean(beds, na.rm = TRUE)) %>% 
   ungroup() %>% 
   nest(data = -c(word, word_total)) %>% 
   slice_max(word_total, n = 15) %>% 
@@ -70,6 +71,18 @@ p <- rent_title_words %>%
   stat_halfeye(fill_type = "segments", alpha = 0.3) +
   stat_interval() +
   stat_summary(geom = "point", fun = mean) +
+  # Annotate the average number of beds
+  annotate("text", x = 16, y = 0, label = "(\U00F8 bedrooms)",
+           family = "Fira Sans", size = 3, hjust = 0.5) +
+  stat_summary(
+    aes(y = beds),
+    geom = "text",
+    fun.data = function(x) {
+      data.frame(
+        y = 0,
+        label = sprintf("(%s)", scales::number(mean(ifelse(x > 0, x, NA), na.rm = TRUE), accuracy = 0.1)))},
+    family = font_family, size = 2.5
+    ) +
   geom_hline(yintercept = mean_price, col = "grey30", lty = "dashed") +
   annotate("text", x = 16, y = mean_price + 50, label = "Average rent",
            family = "Fira Sans", size = 3, hjust = 0) +
@@ -82,9 +95,11 @@ p <- rent_title_words %>%
   labs(
     title = toupper("Nice and Clean - Relatively Low Rent?"),
     subtitle = plot_subtitle,
-    caption = "Data: Pennington, Kate (2018). 
-    Bay Area Craigslist Rental Housing Posts, 2000-2018.
-    Axis capped at 10,000 USD.
+    caption = "Axis capped at 10,000 USD.<br>
+    Data: Pennington, Kate (2018). 
+    Bay Area Craigslist Rental Housing Posts, 2000-2018.<br>
+    Retrieved from github.com/katepennington/historic_bay_area_craigslist_housing_posts/blob/master/clean_2000_2018.csv.zip.
+    <br>
     Visualization: Ansgar Wolsing",
     x = NULL,
     y = "Rent in USD"
@@ -97,20 +112,20 @@ p <- rent_title_words %>%
     plot.title = element_text(family = "Fira Sans SemiBold"),
     plot.title.position = "plot",
     plot.subtitle = element_textbox_simple(
-      margin = margin(t = 4, b = 12), size = 10),
+      margin = margin(t = 4, b = 16), size = 10),
     plot.caption = element_textbox_simple(
-      margin = margin(t = 8, b = 12), size = 7
+      margin = margin(t = 12), size = 7
     ),
     plot.caption.position = "plot",
     # move the axis text a bit into the panel
-    axis.text.y = element_text(hjust = 0, margin = margin(r = -30)),
+    axis.text.y = element_text(hjust = 0, margin = margin(r = -10)),
     plot.margin = margin(4, 4, 4, 4)
   )
 p
 
 
 ## Custom plot legend
-font_family <- "Fira Sans"
+
 df_for_legend <- rent_title_words %>% 
   filter(word == "beautiful")
 
@@ -148,7 +163,8 @@ p_legend <- df_for_legend %>%
         plot.background = element_rect(color = "grey30", size = 0.2, fill = bg_color))
 p_legend
 
+# Insert the custom legend into the plot
 p + inset_element(p_legend, l = 0.6, r = 1.0,  t = 0.99, b = 0.7, clip = FALSE)
 ggsave(here(base_path, "plots", "rental-posts-adjectives-price-custom-legend.png"),
-       dpi = 400, width = 7, height = 7.5)
+       dpi = 400, width = 7, height = 8)
 
