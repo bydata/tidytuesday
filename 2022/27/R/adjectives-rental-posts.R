@@ -118,7 +118,7 @@ p <- rent_title_words %>%
     ),
     plot.caption.position = "plot",
     # move the axis text a bit into the panel
-    axis.text.y = element_text(hjust = 0, margin = margin(r = -10)),
+    axis.text.y = element_text(hjust = 0, margin = margin(r = -10), family = "Fira Sans SemiBold"),
     plot.margin = margin(4, 4, 4, 4)
   )
 p
