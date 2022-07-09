@@ -48,7 +48,7 @@ font_family <- "Fira Sans"
 plot_subtitle = glue("Adjectives used to describe houses and apartments
 in the San Francisco Bay Area in the titles of rental posts on Craigslist and 
 how they are related to rental prices. Titles from 
-{scales::number(n_rental_posts, big.mark = ',')} rental posts on Craiglists 
+{scales::number(n_rental_posts, big.mark = ',')} rental posts on Craigslist
 between 2000 and 2018. 
 The 15 most frequent adjectives are shown.
 ")
