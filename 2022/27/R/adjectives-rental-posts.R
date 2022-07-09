@@ -39,6 +39,7 @@ adjectives <- subset(words_annotated_df, upos == "ADJ")
 
 # average price over all rental posts
 mean_price <- mean(rent$price, na.rm = TRUE)
+median_price <- median(rent$price, na.rm = TRUE)
 # number of rental posts
 n_rental_posts <- nrow(subset(rent, !is.na(title)))
 
@@ -61,16 +62,17 @@ p <- rent_title_words %>%
   group_by(word) %>% 
   mutate(word_total = n(),
          mean_price = mean(price),
+         median_price = median(price),
          mean_beds = mean(beds, na.rm = TRUE)) %>% 
   ungroup() %>% 
   nest(data = -c(word, word_total)) %>% 
   slice_max(word_total, n = 15) %>% 
   unnest(cols = data) %>% 
-  mutate(word = fct_reorder(word, -mean_price)) %>% 
+  mutate(word = fct_reorder(word, -median_price)) %>% 
   ggplot(aes(word, price)) +
   stat_halfeye(fill_type = "segments", alpha = 0.3) +
   stat_interval() +
-  stat_summary(geom = "point", fun = mean) +
+  stat_summary(geom = "point", fun = median) +
   # Annotate the average number of beds
   annotate("text", x = 16, y = 0, label = "(\U00F8 bedrooms)",
            family = "Fira Sans", size = 3, hjust = 0.5) +
@@ -83,8 +85,8 @@ p <- rent_title_words %>%
         label = sprintf("(%s)", scales::number(mean(ifelse(x > 0, x, NA), na.rm = TRUE), accuracy = 0.1)))},
     family = font_family, size = 2.5
     ) +
-  geom_hline(yintercept = mean_price, col = "grey30", lty = "dashed") +
-  annotate("text", x = 16, y = mean_price + 50, label = "Average rent",
+  geom_hline(yintercept = median_price, col = "grey30", lty = "dashed") +
+  annotate("text", x = 16, y = median_price + 50, label = "Median rent",
            family = "Fira Sans", size = 3, hjust = 0) +
   scale_x_discrete(labels = toupper) +
   scale_y_continuous(breaks = seq(2500, 20000, 2500)) +
@@ -133,13 +135,13 @@ p_legend <- df_for_legend %>%
   ggplot(aes(word, price)) +
   stat_halfeye(fill_type = "segments", alpha = 0.3) +
   stat_interval() +
-  stat_summary(geom = "point", fun = mean) +
+  stat_summary(geom = "point", fun = median) +
   annotate(
     "richtext",
     x = c(0.8, 0.8, 0.8, 1.4, 1.8),
     y = c(1000, 5000, 3000, 2400, 4000),
     label = c("50 % of prices<br>fall within this range", "95 % of prices", 
-              "80 % of prices", "Mean", "Distribution<br>of prices"),
+              "80 % of prices", "Median", "Distribution<br>of prices"),
     fill = NA, label.size = 0, family = font_family, size = 2, vjust = 1,
   ) +
   geom_curve(
@@ -147,7 +149,7 @@ p_legend <- df_for_legend %>%
       x = c(0.7, 0.80, 0.80, 1.225, 1.8),
       xend = c(0.95, 0.95, 0.95, 1.075, 1.8), 
       y = c(1800, 5000, 3000, 2300, 3800),
-      yend = c(1800, 5000, 3000, 2300, 2500)),
+      yend = c(1800, 5000, 3000, 2100, 2500)),
     aes(x = x, xend = xend, y = y, yend = yend),
     stat = "unique", curvature = 0.2, size = 0.2, color = "grey12",
     arrow = arrow(angle = 20, length = unit(1, "mm"))
