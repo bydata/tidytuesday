@@ -39,7 +39,7 @@ flights %>%
   labs(
     title = sprintf(
     "Pandemic hit flight numbers in <span style='color:%s'>2020</span> at Cologne-Bonn Airport,<br>
-    approaching pre-pandemic figures in mid-<span style='color:%s'>2022</span>", 
+    approaching pre-pandemic level in mid-<span style='color:%s'>2022</span>", 
     color_pal[1], colorspace::lighten(color_pal[3], 0.1)),
     subtitle = "Arrivals and departures at Cologne-Bonn Airport, Germany",
     caption = "Daily flight numbers smoothed with LOWESS (bw=0.2, except 2022 bw=0.33).
