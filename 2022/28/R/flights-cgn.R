@@ -26,11 +26,14 @@ flights %>%
     data = ~subset(., YEAR < 2020),
     color = "grey50", se = FALSE, span = 0.2, size = 0.3) +
   geom_smooth(
-    data = ~subset(., YEAR %in% c(2020, 2021)),
+    data = ~subset(., YEAR == 2021),
     aes(color = factor(YEAR)), se = FALSE, span = 0.2, size = 0.7) +
   geom_smooth(
     data = ~subset(., YEAR == 2022),
     aes(color = factor(YEAR)), se = FALSE, span = 0.33, size = 0.7) +
+  geom_smooth(
+    data = ~subset(., YEAR == 2020),
+    aes(color = factor(YEAR)), se = FALSE, span = 0.2, size = 0.7) +
   annotate(
     "text", x = c(305, 120, 220, 150), y = c(420, 100, 310, 350),
     color = c("grey50", color_pal[1:3]),
