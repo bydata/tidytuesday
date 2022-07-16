@@ -5,27 +5,32 @@ library(lubridate)
 
 base_path <- here::here("2022", "28")
 
-tuesdata <- tidytuesdayR::tt_load(2022, week = 28)
-flights <- tuesdata$flights
+# tuesdata <- tidytuesdayR::tt_load(2022, week = 28)
+# flights <- tuesdata$flights
+#' Download Eurocontrol dataset from https://ansperformance.eu/data/
+library(readxl)
+url_data <- "https://ansperformance.eu/download/xls/Airport_Traffic.xlsx"
+filepath <- "Airport_Traffic.xlsx"
+download.file(url_data, destfile = filepath)
+flights <- read_xlsx(filepath, sheet = "DATA")
 
 # Color palette
 color_pal = c("#E6A850", "#325163", "#6C97B0", "#C1CCBC")
 
 flights %>% 
   filter(STATE_NAME == "Germany", APT_NAME == "Cologne-Bonn") %>% 
-  mutate(week = week(FLT_DATE),
-         day = yday(FLT_DATE)) %>%
+  mutate(day = yday(FLT_DATE)) %>%
   count(YEAR, day, APT_NAME, wt = FLT_TOT_1, name = "total_flights") %>%
   ggplot(aes(day, total_flights, group = YEAR)) +
   geom_smooth(
     data = ~subset(., YEAR < 2020),
     color = "grey50", se = FALSE, span = 0.2, size = 0.3) +
   geom_smooth(
-    data = ~subset(., YEAR == 2022),
-    aes(color = factor(YEAR)), se = FALSE, span = 0.33, size = 0.7) +
-  geom_smooth(
     data = ~subset(., YEAR %in% c(2020, 2021)),
     aes(color = factor(YEAR)), se = FALSE, span = 0.2, size = 0.7) +
+  geom_smooth(
+    data = ~subset(., YEAR == 2022),
+    aes(color = factor(YEAR)), se = FALSE, span = 0.33, size = 0.7) +
   annotate(
     "text", x = c(305, 120, 220, 150), y = c(420, 100, 310, 350),
     color = c("grey50", color_pal[1:3]),
