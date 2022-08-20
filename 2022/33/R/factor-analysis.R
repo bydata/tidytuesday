@@ -27,11 +27,13 @@ nrow(psych_stats)
 length(unique(psych_stats$question))
 unique(psych_stats$question)
 
-# Prepare data
+# Prepare data  ================================================================
+
 min_ratings_threshold <- 10
 psych_stats_scaled <- psych_stats %>% 
   # rescale the ratings 
-  mutate(avg_rating_scaled = ifelse(str_extract(question, "[^/]+") == personality, 50 - avg_rating, avg_rating - 50),
+  mutate(avg_rating_scaled = ifelse(
+    str_extract(question, "[^/]+") == personality, 50 - avg_rating, avg_rating - 50),
          avg_rating_scaled = avg_rating_scaled / 50) %>% 
   # keep only characters which have at least 10 ratings in each dimension
   group_by(char_name) %>% 
@@ -50,21 +52,84 @@ psych_stats_scaled_wide <- psych_stats_scaled %>%
 head(psych_stats_scaled_wide)
 
 
+# Image Processing =============================================================
+
+## Download character pictures for selected show
+show_name <- "The Simpsons"
+character_image_urls <- characters$image_link[characters$uni_name == show_name]
+character_image_filenames <- str_extract(character_image_urls, "\\d+\\.jpg")
+character_image_path <- here(base_path, "input", "character_images", show_name)
+if (!dir.exists(character_image_path)) {
+  dir.create(here(base_path, "input"))
+  dir.create(character_image_path)
+  download.file(character_image_urls, destfile = here(character_image_path, character_image_filenames))
+}
+
+##' Create round images
+##' Source: https://stackoverflow.com/questions/64597525/r-magick-square-crop-and-circular-mask
+library(magick)
+
+# here(character_image_path, character_image_filenames[1])
+image_crop_circle <- function(img_file, img_path, dest_path, bgcolor = "#F0C246") {
+  print(img_path)
+  im <- image_read(here(img_path, img_file))
+  
+  # get height, width and crop longer side to match shorter side
+  ii <- image_info(im)
+  ii_min <- min(ii$width, ii$height)
+  im1 <- image_crop(im, geometry = paste0(ii_min, "x", ii_min, "+0+0"), repage = TRUE)
+  
+  # create a new image with white background and black circle
+  img_circle <- image_draw(image_blank(ii_min, ii_min))
+  symbols(ii_min / 2, ii_min / 2, circles = (ii_min / 2) - 3, bg = "black", 
+          inches = FALSE, add = TRUE)
+  dev.off()
+  
+  img_circle_ring <- image_draw(image_blank(ii_min, ii_min))
+  symbols(ii_min / 2, ii_min / 2, circles = (ii_min / 2) - 3, fg = "green", 
+          inches = FALSE, add = TRUE)
+  dev.off()
+  
+  
+  # create an image composite using both images and set background as transparent
+  im2 <- image_composite(im1, img_circle, operator = "copyopacity") %>% 
+    image_background(bgcolor)
+  
+  # save processed images
+  if (!dir.exists(dest_path)) {
+    dir.create(dest_path)
+  }
+  image_write(im2, here(dest_path, img_file))
+}
+
+walk(
+  character_image_filenames, 
+  ~image_crop_circle(
+    .x, character_image_path, 
+    here(character_image_path, "processed"))
+)
+
+
+
 ## Factor analysis =============================================================
 
 # Select numeric columns and keep only a fraction
 
-# Find the personality questions with the highest variance
-questions_highest_variance <- psych_stats_scaled_wide[, -1] %>% 
-  summarize_all(sd) %>% 
-  pivot_longer(cols = everything(), names_to = "scale", values_to = "sd") %>% 
-  arrange(-sd)
-head(questions_highest_variance$scale, 10)  
+# Find the most rated personality questions
+questions_most_ratings <- psych_stats %>% 
+  count(question, wt = number_ratings, sort = TRUE) %>% 
+  # remove emoji scales
+  filter(str_length(question) > 10) %>% 
+  pivot_wider(names_from = "question", values_from = "n",
+              names_repair = function(x) janitor::make_clean_names(x, replace = c("/" = "_vs_"))) %>% 
+  pivot_longer(cols = everything(), names_to = "question", values_to = "n")
 
 psych_stats_scaled_wide_numeric <- data.frame(
   psych_stats_scaled_wide[, -1], row.names =  pull(psych_stats_scaled_wide, "char_name"))
+# psych_stats_scaled_wide_numeric_reduced <- 
+#   psych_stats_scaled_wide_numeric[, 1:120]
 psych_stats_scaled_wide_numeric_reduced <- 
-  psych_stats_scaled_wide_numeric[, 1:120]
+  psych_stats_scaled_wide_numeric[, head(questions_most_ratings$question, 100)]
 
 # Check number of recommended factors
 fa.parallel(psych_stats_scaled_wide_numeric_reduced)
@@ -103,66 +168,6 @@ fa_scores[["scores"]] %>%
   as_tibble(rownames = "char_name") %>% 
   arrange(-MR3)
 
-
-# Image Processing =============================================================
-
-## Download character pictures for selected show
-show_name <- "The Simpsons"
-character_image_urls <- characters$image_link[characters$uni_name == show_name]
-character_image_filenames <- str_extract(character_image_urls, "\\d+\\.jpg")
-character_image_path <- here(base_path, "input", "character_images", show_name)
-if (!dir.exists(character_image_path)) {
-  dir.create(here(base_path, "input"))
-  dir.create(character_image_path)
-  download.file(character_image_urls, destfile = here(character_image_path, character_image_filenames))
-}
-
-##' Create round images
-##' Source: https://stackoverflow.com/questions/64597525/r-magick-square-crop-and-circular-mask
-library(magick)
-
-# here(character_image_path, character_image_filenames[1])
-image_crop_circle <- function(img_file, img_path, dest_path, bgcolor = "#F0C246") {
-  print(img_path)
-  im <- image_read(here(img_path, img_file))
-                   
-  # get height, width and crop longer side to match shorter side
-  ii <- image_info(im)
-  ii_min <- min(ii$width, ii$height)
-  im1 <- image_crop(im, geometry = paste0(ii_min, "x", ii_min, "+0+0"), repage = TRUE)
-  
-  # create a new image with white background and black circle
-  img_circle <- image_draw(image_blank(ii_min, ii_min))
-  symbols(ii_min / 2, ii_min / 2, circles = (ii_min / 2) - 3, bg = "black", 
-          inches = FALSE, add = TRUE)
-  dev.off()
-  
-  img_circle_ring <- image_draw(image_blank(ii_min, ii_min))
-  symbols(ii_min / 2, ii_min / 2, circles = (ii_min / 2) - 3, fg = "green", 
-          inches = FALSE, add = TRUE)
-  dev.off()
-  
-  
-  # create an image composite using both images and set background as transparent
-  im2 <- image_composite(im1, img_circle, operator = "copyopacity") %>% 
-    image_background(bgcolor)
-  
-  # save processed images
-  if (!dir.exists(dest_path)) {
-    dir.create(dest_path)
-  }
-  image_write(im2, here(dest_path, img_file))
-}
-
-walk(
-  character_image_filenames, 
-  ~image_crop_circle(
-    .x, character_image_path, 
-    here(character_image_path, "processed"))
-)
-
-
-
 # labels for annotations
 top_loadings_per_factor_labels <- loadings_per_factor %>% 
   separate(scale, into = c("end1", "end2"), sep = "_vs_") %>% 
@@ -177,7 +182,6 @@ top_loadings_per_factor_labels <- loadings_per_factor %>%
   group_by(factor) %>% 
   slice_max(loading_abs, n = 4) %>% 
   ungroup()
-
 
 ## custom stacking of characters
 characters_fa_stacked_df <- fa_scores[["scores"]] %>% 
@@ -196,13 +200,17 @@ characters_fa_stacked_df <- fa_scores[["scores"]] %>%
   mutate(stack_id = row_number()) %>% 
   ungroup()
 
-
-# which factor?
-selected_factor <- "MR7"
-
-#for (i in seq_len(nfactors)) {
-for (i in 2:nfactors) {
+# Plot all factors =============================================================
+for (i in seq_len(nfactors)) {
   selected_factor <- paste0("MR", i)
+  trait_labels_left <- top_loadings_per_factor_labels$left_label[top_loadings_per_factor_labels$factor == selected_factor]
+  trait_labels_right <- top_loadings_per_factor_labels$right_label[top_loadings_per_factor_labels$factor == selected_factor]
+  trait_labels_n <- length(trait_labels_left)
+  
+  alpha <- seq(1, 0.6, -(1 - 0.6) / (trait_labels_n - 1))
+  # y_pos <- seq(6, 4.5, -(6 - 4.5) /  (trait_labels_n - 1))
+  y_pos <- seq(6, 4.5, -0.5)
+  y_pos <- y_pos[seq_len(trait_labels_n)]
   
   characters_fa_stacked_df %>% 
     filter(factor == selected_factor) %>% 
@@ -213,34 +221,22 @@ for (i in 2:nfactors) {
       # label.size = 0.5, label.color = "#2f64d6", fill = "white", label.r = unit(3.5, "mm"),
       label.size = 0, fill = NA
     ) + 
-    # Traits left-hand side
-    # annotate(
-    #   "text",
-    #   label = c("persistent", "motivated", "resourceful", "driven"),
-    #   x = min(characters_fa_stacked_df$score_rounded),
-    #   y = seq(6, 4.5, -0.5),
-    #   alpha = seq(1, 0.5, -0.15),
-    #   color = "#2f64d6",
-    #   family = "Source Sans Pro SemiBold",
-    #   hjust = 0) +
     annotate(
       "text",
-      label = top_loadings_per_factor_labels$left_label[top_loadings_per_factor_labels$factor == selected_factor],
+      label = trait_labels_left,
       x = min(characters_fa_stacked_df$score_rounded),
-      y = seq(6, 4.5, -0.5),
-      alpha = seq(1, 0.5, -0.15),
-      # alpha = top_loadings_per_factor_labels$loading_abs[top_loadings_per_factor_labels$factor == selected_factor],
+      y = y_pos,
+      alpha = alpha,
       color = "#2f64d6",
       family = "Source Sans Pro SemiBold",
       hjust = 0) +
     # Traits right-hand side
     annotate(
       "text",
-      label = top_loadings_per_factor_labels$right_label[top_loadings_per_factor_labels$factor == selected_factor],
+      label = trait_labels_right,
       x = max(characters_fa_stacked_df$score_rounded), # - 0.5,
-      y = seq(6, 4.5, -0.5),
-      alpha = seq(1, 0.5, -0.15),
-      # alpha = top_loadings_per_factor_labels$loading_abs[top_loadings_per_factor_labels$factor == selected_factor],
+      y = y_pos,
+      alpha = alpha,
       color = "#FF81C1",
       family = "Source Sans Pro SemiBold",
       hjust = 1 ) +
@@ -261,16 +257,18 @@ for (i in 2:nfactors) {
     labs(
       title = "<span style='font-family: Simpsonfont; font-size: 18pt; color: black'>
       the</span><br>
-      <span style='font-family: Simpsonfont; font-size: 24pt; color: black'>Simpsons</span><br>Psychometrics"
+      <span style='font-family: Simpsonfont; font-size: 30pt; color: black'>Simpsons</span><br>Psychometrics",
+      caption = "**Data:** Open-Source Psychometrics Project, Tanya Shapiro. **Visualization:** Ansgar Wolsing"
     ) +
     theme_void(base_family = "Source Sans Pro") +
     theme(
       plot.background = element_rect(color = NA, fill = "#F0C246"),
-      # axis.line.x = element_line(),
-      # axis.text.x = element_text(),
+      text = element_text(color = "grey10"),
       plot.title = element_markdown(
-        family = "Source Sans Pro SemiBold", color = "grey50", size = 16, hjust = 0.5),
+        family = "Source Sans Pro SemiBold", color = "grey47", size = 16, hjust = 0.5),
+      plot.caption = element_markdown(),
       plot.margin = margin(8, 8, 8, 8)
     )
   ggsave(here(base_path, "plots", sprintf("factor_%s_stacked.png", selected_factor)), dpi = 500, width = 7, height = 5)
 }  
+
