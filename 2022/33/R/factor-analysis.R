@@ -10,7 +10,9 @@ str(tuesdata)
 characters <- tuesdata$characters
 psych_stats <- tuesdata$psych_stats
 
+#' Source & documentation: 
 #' https://openpsychometrics.org/tests/characters/development/
+
 
 # which shows?
 table(characters$uni_name)
@@ -201,12 +203,16 @@ characters_fa_stacked_df <- fa_scores[["scores"]] %>%
   ungroup()
 
 # Plot all factors =============================================================
+
 for (i in seq_len(nfactors)) {
   selected_factor <- paste0("MR", i)
   trait_labels_left <- top_loadings_per_factor_labels$left_label[top_loadings_per_factor_labels$factor == selected_factor]
+  trait_labels_left <- str_replace(trait_labels_left, "_", " ")
   trait_labels_right <- top_loadings_per_factor_labels$right_label[top_loadings_per_factor_labels$factor == selected_factor]
-  trait_labels_n <- length(trait_labels_left)
+  trait_labels_right <- str_replace(trait_labels_right, "_", " ")
   
+  # set y position and alpha values for labels
+  trait_labels_n <- length(trait_labels_left)
   alpha <- seq(1, 0.6, -(1 - 0.6) / (trait_labels_n - 1))
   # y_pos <- seq(6, 4.5, -(6 - 4.5) /  (trait_labels_n - 1))
   y_pos <- seq(6, 4.5, -0.5)
@@ -244,13 +250,13 @@ for (i in seq_len(nfactors)) {
     annotate(
       "segment",
       x = c(
-        min(characters_fa_stacked_df$score_rounded) + 1,
-        max(characters_fa_stacked_df$score_rounded) - 1),
+        min(characters_fa_stacked_df$score_rounded) + 0.75,
+        max(characters_fa_stacked_df$score_rounded) - 0.75),
       xend = c(
-        min(characters_fa_stacked_df$score_rounded),
-        max(characters_fa_stacked_df$score_rounded)),
-      y = 0, yend = 0,
-      color = c("#2f64d6", "#FF81C1"), size = 1,
+        min(characters_fa_stacked_df$score_rounded) - 0.1,
+        max(characters_fa_stacked_df$score_rounded) + 0.1),
+      y = 6.5, yend = 6.5,
+      color = c("#2f64d6", "#FF81C1"), size = 0.8,
       arrow = arrow(type = "closed", length = unit(2, "mm"))
     ) +
     coord_cartesian(ylim = c(0, 6.5)) +
@@ -270,5 +276,16 @@ for (i in seq_len(nfactors)) {
       plot.margin = margin(8, 8, 8, 8)
     )
   ggsave(here(base_path, "plots", sprintf("factor_%s_stacked.png", selected_factor)), dpi = 500, width = 7, height = 5)
-}  
+} 
 
+
+# Animate ======================================================================
+
+img_files <- here(base_path, "plots", sprintf("factor_%s_stacked.png", paste0("MR", seq_len(nfactors))))
+imgs <- image_read(img_files)
+
+anim <- image_animate(imgs, fps = 1 / 3)
+image_write_video(anim, here(base_path, "plots", "simpsons-personalities.mov"), framerate = 1 / 3)
+
+
+#' Simpsons (by Dennis Ludlow) font can be downloaded from https://www.dafont.com/simpsonfont.font
