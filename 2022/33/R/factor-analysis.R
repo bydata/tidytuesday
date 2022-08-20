@@ -243,7 +243,7 @@ for (i in seq_len(nfactors)) {
       x = max(characters_fa_stacked_df$score_rounded), # - 0.5,
       y = y_pos,
       alpha = alpha,
-      color = "#FF81C1",
+      color = "#9c5b01",
       family = "Source Sans Pro SemiBold",
       hjust = 1 ) +
     # arrows
@@ -256,7 +256,7 @@ for (i in seq_len(nfactors)) {
         min(characters_fa_stacked_df$score_rounded) - 0.1,
         max(characters_fa_stacked_df$score_rounded) + 0.1),
       y = 6.5, yend = 6.5,
-      color = c("#2f64d6", "#FF81C1"), size = 0.8,
+      color = c("#2f64d6", "#9c5b01"), size = 0.8,
       arrow = arrow(type = "closed", length = unit(2, "mm"))
     ) +
     coord_cartesian(ylim = c(0, 6.5)) +
@@ -286,6 +286,8 @@ imgs <- image_read(img_files)
 
 anim <- image_animate(imgs, fps = 1 / 3)
 image_write_video(anim, here(base_path, "plots", "simpsons-personalities.mov"), framerate = 1 / 3)
+
+
 
 
 #' Simpsons (by Dennis Ludlow) font can be downloaded from https://www.dafont.com/simpsonfont.font
