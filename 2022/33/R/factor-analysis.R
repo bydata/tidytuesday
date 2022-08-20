@@ -53,15 +53,24 @@ head(psych_stats_scaled_wide)
 ## Factor analysis =============================================================
 
 # Select numeric columns and keep only a fraction
+
+# Find the personality questions with the highest variance
+questions_highest_variance <- psych_stats_scaled_wide[, -1] %>% 
+  summarize_all(sd) %>% 
+  pivot_longer(cols = everything(), names_to = "scale", values_to = "sd") %>% 
+  arrange(-sd)
+head(questions_highest_variance$scale, 10)  
+
 psych_stats_scaled_wide_numeric <- data.frame(
   psych_stats_scaled_wide[, -1], row.names =  pull(psych_stats_scaled_wide, "char_name"))
-psych_stats_scaled_wide_numeric_reduced <- psych_stats_scaled_wide_numeric[, 1:120]
+psych_stats_scaled_wide_numeric_reduced <- 
+  psych_stats_scaled_wide_numeric[, 1:120]
 
 # Check number of recommended factors
 fa.parallel(psych_stats_scaled_wide_numeric_reduced)
 
 # Run FA with nfactors
-nfactors <- 7
+nfactors <- 8
 f_a <- fa(psych_stats_scaled_wide_numeric_reduced, nfactors = nfactors)
 f_a
 # show factor loadings about cut off
@@ -138,11 +147,6 @@ image_crop_circle <- function(img_file, img_path, dest_path, bgcolor = "#F0C246"
   im2 <- image_composite(im1, img_circle, operator = "copyopacity") %>% 
     image_background(bgcolor)
   
-  # im2 <- 
-  #   image_composite(im1, img_circle_ring, operator = "copyopacity") %>% 
-  #   image_composite(img_circle, operator = "copyopacity") %>% 
-  #   image_background(bgcolor)
-  
   # save processed images
   if (!dir.exists(dest_path)) {
     dir.create(dest_path)
@@ -159,91 +163,114 @@ walk(
 
 
 
-## custom stacking of characters
+# labels for annotations
+top_loadings_per_factor_labels <- loadings_per_factor %>% 
+  separate(scale, into = c("end1", "end2"), sep = "_vs_") %>% 
+  mutate(
+    left_label = ifelse(loading > 0, end1, end2),
+    right_label = ifelse(loading > 0, end2, end1),
+    loading_abs = abs(loading),
+    factor = paste0("MR", factor)
+  ) %>% 
+  arrange(-loading_abs) %>% 
+  select(factor, left_label, right_label, loading, loading_abs) %>% 
+  group_by(factor) %>% 
+  slice_max(loading_abs, n = 4) %>% 
+  ungroup()
 
+
+## custom stacking of characters
 characters_fa_stacked_df <- fa_scores[["scores"]] %>% 
   as_tibble(rownames = "name") %>% 
   inner_join(characters, by = "name") %>% 
   filter(uni_name == show_name) %>% 
   # add the image paths
   bind_cols(image_src = 
-              sprintf("<img src='%s' width=40>", 
+              sprintf("<img src='%s' width=30>", 
                       here(base_path, "input", "character_images", show_name, 
                            "processed", character_image_filenames))) %>% 
-  mutate(MR3_r = round(MR3 / 5, 1) * 5) %>% 
-  group_by(MR3_r) %>% 
+  select(name, starts_with("MR"), image_src) %>% 
+  pivot_longer(cols = -c(name, image_src), names_to = "factor", values_to = "score") %>% 
+  mutate(score_rounded = round(score / 5, 1) * 5) %>% 
+  group_by(factor, score_rounded) %>% 
   mutate(stack_id = row_number()) %>% 
   ungroup()
 
-characters_fa_stacked_df %>% 
-  ggplot(aes(x = MR3_r, y = stack_id)) +
-  # geom_point(size = 16, color = "#2f64d6") +
-  geom_richtext(
-    aes(label = image_src),
-    size = 8,
-    # label.size = 0.5, label.color = "#2f64d6", fill = "white", label.r = unit(3.5, "mm"),
-    label.size = 0, fill = NA
-  ) + 
-  annotate(
-    "text",
-    label = c("persistent", "motivated", "resourceful", "driven"),
-    x = min(characters_fa_stacked_df$MR3_r),
-    y = seq(6, 4.5, -0.5),
-    alpha = seq(1, 0.5, -0.15),
-    color = "#2f64d6",
-    family = "Source Sans Pro SemiBold",
-    hjust = 0) +
-  # 
-  annotate(
-    "text",
-    label = c("quitter", "unmotivated", "helpless", "unambitious"),
-    x = max(characters_fa_stacked_df$MR3_r) - 0.5,
-    y = seq(6, 4.5, -0.5),
-    alpha = seq(1, 0.5, -0.15),
-    color = "#FF81C1",
-    family = "Source Sans Pro SemiBold",
-    hjust = 0) +
-  coord_cartesian(ylim = c(0, 7)) +
-  labs(
-    title = "<span style='font-family: Simpsonfont; font-size: 24pt; color: black'>The Simpsons</span><br>Psychometrics"
-  ) +
-  theme_void(base_family = "Source Sans Pro") +
-  theme(
-    plot.background = element_rect(color = NA, fill = "#F0C246"),
-    axis.line.x = element_line(),
-    axis.text.x = element_text(),
-    plot.title = element_markdown(family = "Source Sans Pro SemiBold", color = "grey50", size = 16, hjust = 0.5)
-  )
-ggsave(here(base_path, "plots", "factor_MR3_stacked.png"), dpi = 500, width = 7, height = 5)
 
+# which factor?
+selected_factor <- "MR7"
 
-p <- fa_scores[["scores"]] %>% 
-  as_tibble(rownames = "name") %>% 
-  inner_join(characters, by = "name") %>% 
-  filter(uni_name == show_name) %>% 
-  # add the image paths
-  bind_cols(image_src = 
-              sprintf("<img src='%s' width=10>", 
-                      here(base_path, "input", "character_images", show_name, character_image_filenames))) %>% 
-  ggplot(aes(x = 1, y = MR3)) +
-  # geom_jitter(width = 0.1, height = 0) +
-  geom_richtext(
-    # data = ~subset(., MR3 == max(MR3) | MR3 == min(MR3)),
-    aes(label = image_src),
-    label.size = 0.5, label.color = "#2f64d6", fill = "white", label.r = unit(2.5, "mm"),
-    position = position_jitter(width = 0.15, height = 0) 
-  ) + 
-  coord_flip(xlim = c(0.7, 1.3)) +
-  theme_void() +
-  theme(
-    plot.background = element_rect(color = NA, fill = "#F0C246"),
-    axis.line.x = element_line(),
-    axis.text.x = element_text()
-  )
-ggsave(here(base_path, "plots", "factor_MR3_beeswarm.png"), width = 7, height = 5)
-
-
-
-
-
-
+#for (i in seq_len(nfactors)) {
+for (i in 2:nfactors) {
+  selected_factor <- paste0("MR", i)
+  
+  characters_fa_stacked_df %>% 
+    filter(factor == selected_factor) %>% 
+    ggplot(aes(x = score_rounded, y = stack_id)) +
+    geom_richtext(
+      aes(label = image_src),
+      size = 8,
+      # label.size = 0.5, label.color = "#2f64d6", fill = "white", label.r = unit(3.5, "mm"),
+      label.size = 0, fill = NA
+    ) + 
+    # Traits left-hand side
+    # annotate(
+    #   "text",
+    #   label = c("persistent", "motivated", "resourceful", "driven"),
+    #   x = min(characters_fa_stacked_df$score_rounded),
+    #   y = seq(6, 4.5, -0.5),
+    #   alpha = seq(1, 0.5, -0.15),
+    #   color = "#2f64d6",
+    #   family = "Source Sans Pro SemiBold",
+    #   hjust = 0) +
+    annotate(
+      "text",
+      label = top_loadings_per_factor_labels$left_label[top_loadings_per_factor_labels$factor == selected_factor],
+      x = min(characters_fa_stacked_df$score_rounded),
+      y = seq(6, 4.5, -0.5),
+      alpha = seq(1, 0.5, -0.15),
+      # alpha = top_loadings_per_factor_labels$loading_abs[top_loadings_per_factor_labels$factor == selected_factor],
+      color = "#2f64d6",
+      family = "Source Sans Pro SemiBold",
+      hjust = 0) +
+    # Traits right-hand side
+    annotate(
+      "text",
+      label = top_loadings_per_factor_labels$right_label[top_loadings_per_factor_labels$factor == selected_factor],
+      x = max(characters_fa_stacked_df$score_rounded), # - 0.5,
+      y = seq(6, 4.5, -0.5),
+      alpha = seq(1, 0.5, -0.15),
+      # alpha = top_loadings_per_factor_labels$loading_abs[top_loadings_per_factor_labels$factor == selected_factor],
+      color = "#FF81C1",
+      family = "Source Sans Pro SemiBold",
+      hjust = 1 ) +
+    # arrows
+    annotate(
+      "segment",
+      x = c(
+        min(characters_fa_stacked_df$score_rounded) + 1,
+        max(characters_fa_stacked_df$score_rounded) - 1),
+      xend = c(
+        min(characters_fa_stacked_df$score_rounded),
+        max(characters_fa_stacked_df$score_rounded)),
+      y = 0, yend = 0,
+      color = c("#2f64d6", "#FF81C1"), size = 1,
+      arrow = arrow(type = "closed", length = unit(2, "mm"))
+    ) +
+    coord_cartesian(ylim = c(0, 6.5)) +
+    labs(
+      title = "<span style='font-family: Simpsonfont; font-size: 18pt; color: black'>
+      the</span><br>
+      <span style='font-family: Simpsonfont; font-size: 24pt; color: black'>Simpsons</span><br>Psychometrics"
+    ) +
+    theme_void(base_family = "Source Sans Pro") +
+    theme(
+      plot.background = element_rect(color = NA, fill = "#F0C246"),
+      # axis.line.x = element_line(),
+      # axis.text.x = element_text(),
+      plot.title = element_markdown(
+        family = "Source Sans Pro SemiBold", color = "grey50", size = 16, hjust = 0.5),
+      plot.margin = margin(8, 8, 8, 8)
+    )
+  ggsave(here(base_path, "plots", sprintf("factor_%s_stacked.png", selected_factor)), dpi = 500, width = 7, height = 5)
+}  
