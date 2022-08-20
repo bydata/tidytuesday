@@ -73,17 +73,19 @@ fa_loadings_df <- as_tibble(unclass(f_a$loadings), rownames = "scale") %>%
 
 # Show the variables with the highest loadings per factor
 loading_cutoff <- 0.6
+sorted <- vector("list", nfactors)
 for (i in seq_len(nfactors)) {
   writeLines(paste0("*** MR", i))
-  sorted <- fa_loadings_df[, c(1, i + 1)] %>% 
-    select(scale, factor = 2) %>% 
-    mutate(trait = ifelse(factor < 0, str_extract(scale, ".+_vs_"), str_extract(scale, "_vs_.+")),
+  sorted[[i]] <- fa_loadings_df[, c(1, i + 1)] %>% 
+    select(scale, loading = 2) %>% 
+    mutate(trait = ifelse(loading < 0, str_extract(scale, ".+_vs_"), str_extract(scale, "_vs_.+")),
            trait = str_remove(trait, "_vs_")) %>% 
-    filter(abs(factor) > loading_cutoff) %>% 
-    arrange(-abs(factor)) %>%
-    head(10)  
-  print(sorted)
+    filter(abs(loading) > loading_cutoff) %>% 
+    arrange(-abs(loading)) %>%
+    head(10)
+  print(sorted[[i]])
 }
+loadings_per_factor <- bind_rows(sorted, .id = "factor")
 
 # calculate factor scores
 fa_scores <- factor.scores(psych_stats_scaled_wide_numeric_reduced, f_a)
@@ -110,29 +112,6 @@ if (!dir.exists(character_image_path)) {
 ##' Source: https://stackoverflow.com/questions/64597525/r-magick-square-crop-and-circular-mask
 library(magick)
 
-# im <- image_read(here(character_image_path, character_image_filenames[1]))
-# 
-# # get height, width and crop longer side to match shorter side
-# ii <- image_info(im)
-# ii_min <- min(ii$width, ii$height)
-# im1 <- magick::image_crop(im, geometry = paste0(ii_min, "x", ii_min, "+0+0"), repage = TRUE)
-# 
-# # create a new image with white background and black circle
-# img_circle <- image_draw(image_blank(ii_min, ii_min))
-# symbols(ii_min/2, ii_min/2, circles=(ii_min/2)-3, bg = "black", inches = FALSE, add = TRUE)
-# dev.off()
-# 
-# # create an image composite using both images and set background as transparent
-# im2 <- image_composite(im1, img_circle, operator = "copyopacity") %>% 
-#   # image_background("transparent")
-#   image_background("#F0C246")
-# 
-# # save processed images
-# if (!dir.exists(here(character_image_path, "processed"))) {
-#   dir.create(here(character_image_path, "processed"))
-# }
-# image_write(im2, here(character_image_path, "processed", character_image_filenames[1]))
-
 # here(character_image_path, character_image_filenames[1])
 image_crop_circle <- function(img_file, img_path, dest_path, bgcolor = "#F0C246") {
   print(img_path)
@@ -149,9 +128,20 @@ image_crop_circle <- function(img_file, img_path, dest_path, bgcolor = "#F0C246"
           inches = FALSE, add = TRUE)
   dev.off()
   
+  img_circle_ring <- image_draw(image_blank(ii_min, ii_min))
+  symbols(ii_min / 2, ii_min / 2, circles = (ii_min / 2) - 3, fg = "green", 
+          inches = FALSE, add = TRUE)
+  dev.off()
+  
+  
   # create an image composite using both images and set background as transparent
   im2 <- image_composite(im1, img_circle, operator = "copyopacity") %>% 
     image_background(bgcolor)
+  
+  # im2 <- 
+  #   image_composite(im1, img_circle_ring, operator = "copyopacity") %>% 
+  #   image_composite(img_circle, operator = "copyopacity") %>% 
+  #   image_background(bgcolor)
   
   # save processed images
   if (!dir.exists(dest_path)) {
@@ -174,10 +164,10 @@ walk(
 characters_fa_stacked_df <- fa_scores[["scores"]] %>% 
   as_tibble(rownames = "name") %>% 
   inner_join(characters, by = "name") %>% 
-  filter(uni_name == "The Simpsons") %>% 
+  filter(uni_name == show_name) %>% 
   # add the image paths
   bind_cols(image_src = 
-              sprintf("<img src='%s' width=30>", 
+              sprintf("<img src='%s' width=40>", 
                       here(base_path, "input", "character_images", show_name, 
                            "processed", character_image_filenames))) %>% 
   mutate(MR3_r = round(MR3 / 5, 1) * 5) %>% 
