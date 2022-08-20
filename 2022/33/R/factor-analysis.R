@@ -207,9 +207,9 @@ characters_fa_stacked_df <- fa_scores[["scores"]] %>%
 for (i in seq_len(nfactors)) {
   selected_factor <- paste0("MR", i)
   trait_labels_left <- top_loadings_per_factor_labels$left_label[top_loadings_per_factor_labels$factor == selected_factor]
-  trait_labels_left <- str_replace(trait_labels_left, "_", " ")
+  trait_labels_left <- str_replace_all(trait_labels_left, "_", " ")
   trait_labels_right <- top_loadings_per_factor_labels$right_label[top_loadings_per_factor_labels$factor == selected_factor]
-  trait_labels_right <- str_replace(trait_labels_right, "_", " ")
+  trait_labels_right <- str_replace_all(trait_labels_right, "_", " ")
   
   # set y position and alpha values for labels
   trait_labels_n <- length(trait_labels_left)
