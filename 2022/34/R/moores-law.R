@@ -46,8 +46,8 @@ df %>%
     axis.title = element_text(face = "bold", color = "grey90"),
     text = element_text(color = "grey90"),
     strip.text = element_text(family = "Tabular Semibold", size = 9, color = "grey90"),
-    strip.background = element_rect(color = NA, fill = "grey20"),
-    panel.background = element_rect(color = NA, fill = "grey30"),
+    strip.background = element_rect(color = NA, fill = "grey18"),
+    panel.background = element_rect(color = NA, fill = "grey24"),
     plot.title = element_markdown(face = "bold", color = "grey97", size = 14),
     plot.title.position = "plot",
     plot.subtitle = element_textbox(
