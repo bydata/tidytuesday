@@ -29,7 +29,7 @@ df %>%
   labs(
     # title = "Moore's Law Still Holds, Especially in <span style='color:#03FD00'>GPU</span>",
     title = "Moore's Law Still Holds, Especially in GPU",
-    subtitle = "Moore's law refers to the observation made by 
+    subtitle = "Moore's Law refers to the observation made by 
     Gordon Moore in 1965 that the number of transistors in a dense integrated 
     circuit doubles about every two years.
     The lines indicate overall trends of advancements in CPU and GPU, the dots show
