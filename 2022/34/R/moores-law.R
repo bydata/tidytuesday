@@ -23,11 +23,11 @@ df %>%
   geom_point(aes(color = stage(type, after_scale = colorspace::desaturate(color, 0.75))), 
                  size = 0.2, alpha = 0.5) +
   scale_y_log10() +
-  scale_color_manual(values = c("#ECB915", "#03FD00")) +
+  scale_color_manual(values = c("#EEC11A", "#03FD00")) +
   facet_wrap(vars(type)) +
   guides(color = "none") +
   labs(
-    title = "Moore's Law Still Holds, Especially in GPU",
+    title = "Moore's Law Still Holds, Especially in <span style='color:#03FD00'>GPU</span>",
     subtitle = "Moore's law refers to the observation made by 
     Gordon Moore in 1965 that the number of transistors in a dense integrated 
     circuit doubles about every two years.
@@ -48,7 +48,7 @@ df %>%
     strip.text = element_text(family = "Tabular Semibold", size = 9, color = "grey90"),
     strip.background = element_rect(color = NA, fill = "grey20"),
     panel.background = element_rect(color = NA, fill = "grey30"),
-    plot.title = element_text(face = "bold", color = "grey97", size = 14),
+    plot.title = element_markdown(face = "bold", color = "grey97", size = 14),
     plot.title.position = "plot",
     plot.subtitle = element_textbox(
       lineheight = 1.2, size = 8,
