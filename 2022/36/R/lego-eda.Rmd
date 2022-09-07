@@ -1,0 +1,577 @@
+---
+title: "LEGO EDA"
+author: "Ansgar Wolsing"
+date: "2022-09-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggtext)
+library(lubridate)
+library(here)
+
+# Most common themes
+```
+
+```{r read_data, cache=TRUE}
+base_path <- here::here("2022", "36")
+
+#' Source: https://rebrickable.com/downloads/
+#' Download data from website and extract the archives into the data directory
+
+data_path <- here(base_path, "data")
+files <- list.files(data_path, pattern = ".*\\.csv")
+lego <- map(file.path(data_path, files), read_csv) %>% 
+  set_names(str_remove(files, "\\.csv"))
+
+```
+
+## Exploring the tables
+
+### Most frequent themes
+
+Sets are assigned to themes via key `theme_id`.
+
+```{r}
+
+lego$sets %>% 
+  left_join(lego$themes, by = c("theme_id" = "id"), suffix = c("", ".theme")) %>% 
+  count(name.theme, sort = TRUE)
+
+```
+
+Which sets are part of LEGO gear?
+
+```{r}
+
+lego$sets %>% 
+  left_join(lego$themes, by = c("theme_id" = "id"), suffix = c("", ".theme")) %>%
+  filter(name.theme == "Gear") %>% 
+  select(name, year) %>% 
+  head(100)
+
+```
+Looks like theme **"Gear" should be excluded** since it's rather merch and video games.
+
+
+### Colors
+
+#### Colors from a particular set
+
+```{r}
+set <- "42119-1"
+
+lego$sets %>% 
+  filter(set_num == set) %>% 
+  # join inventories
+  inner_join(lego$inventories, by = "set_num") %>% 
+  # join with inventory and parts to get the color ids of the parts + the parts' quantity
+  inner_join(lego$inventory_parts, by = c("id" = "inventory_id")) %>% 
+  inner_join(lego$colors, by = c("color_id" = "id"), suffix = c("", ".color")) %>% 
+  select(set_num, name, year, num_parts, quantity, color_id, name.color, rgb)
+  
+```
+#### Now all sets, aggregate by set and color
+
+```{r}
+
+colors_in_sets <- lego$sets %>% 
+  # join inventories
+  inner_join(lego$inventories, by = "set_num") %>% 
+  # join with inventory and parts to get the color ids of the parts + the parts' quantity
+  inner_join(lego$inventory_parts, by = c("id" = "inventory_id")) %>% 
+  inner_join(lego$colors, by = c("color_id" = "id"), suffix = c("", ".color")) %>% 
+  # exclude spare parts
+  filter(!is_spare) %>% 
+  count(set_num, year, name.color, color_id, rgb, wt = quantity, name = "quantity") %>% 
+  mutate(rgb = paste0("#", rgb))
+
+colors_in_sets
+
+colors_in_sets %>% 
+  filter(set_num == "001-1")
+
+```
+
+
+## Custom chart theme
+
+```{r default_theme}
+
+custom_theme <- function() {
+  theme_void(base_family = "Roboto Condensed") +
+  theme(
+    plot.background = element_rect(color = "grey95", fill = "grey95"),
+    plot.margin = margin(6, 6, 6, 6),
+    text = element_text(color = "grey30"),
+    plot.title = element_markdown(face = "bold", color = "black", size = 16, hjust = 0.5),
+    plot.subtitle = element_textbox(hjust = 0.5, halign = 0.5, lineheight = 1.1, width = 0.85, size = 10),
+    plot.caption = element_markdown(hjust = 0, lineheight = 1.1),
+    strip.text = element_text(face = "bold", size = 12, hjust = 0.5),
+    axis.text = element_text(),
+    axis.title = element_text(),
+    axis.title.y = element_text(angle = 90)
+  )
+}
+
+# Some tweets for the treemap
+theme_treemap <- function(x) {
+  custom_theme() +
+  theme(
+    axis.text = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+  )
+}
+
+theme_set(custom_theme())
+```
+
+
+Standard plot caption:
+```{r}
+plot_caption <- "**Source:** Rebrickable. **Visualization:** Ansgar Wolsing"
+```
+
+
+
+### Number of sets per year
+
+```{r}
+lego$set %>% 
+ ggplot(aes(year)) +
+  geom_bar()
+
+```
+
+Start at 1975, 1980 maybe?
+
+
+**Are there duplicate sets due to multiple inventories per set?**
+
+
+### Colors per release year
+
+```{r}
+colors_in_sets %>% 
+  count(year, rgb, wt = quantity, name = "quantity") %>%
+  filter(year >= 1980) %>% 
+  ggplot(aes(year, quantity, fill = rgb)) +
+  geom_col() +
+  scale_fill_identity()
+
+```
+
+```{r}
+colors_in_sets %>% 
+  count(year, rgb, wt = quantity, name = "quantity") %>% 
+  arrange(rgb) %>% 
+  mutate(rgb = fct_inorder(rgb)) %>% 
+  filter(year >= 1970) %>%
+  ggplot(aes(year, quantity, fill = rgb)) +
+  geom_col(position = "fill") +
+  scale_fill_identity()
+
+```
+
+
+```{r}
+colors_in_sets %>% 
+  count(year, rgb, wt = quantity, name = "quantity") %>% 
+  # start in 1970/1980, end with the second last year
+  filter(year >= 1970, year < max(year)) %>% 
+  ggplot(aes(year, quantity, fill = rgb)) +
+  geom_area() +
+  scale_fill_identity()
+
+```
+
+
+#### Streamgraph
+
+```{r}
+library(ggstream)
+
+colors_in_sets %>% 
+  count(year, rgb, wt = quantity, name = "quantity") %>% 
+  mutate(rgb = fct_reorder(rgb, quantity)) %>% 
+  filter(year >= 1970) %>%
+  ggplot(aes(year, quantity, fill = rgb)) +
+  geom_stream(type = "ridge") +
+  scale_fill_identity()
+```
+
+
+
+```{r}
+
+colors_in_sets %>% 
+  count(year, rgb, wt = quantity, name = "quantity") %>% 
+  mutate(rgb = fct_reorder(rgb, quantity)) %>% 
+  filter(year >= 1970) %>%
+  ggplot(aes(year, quantity, fill = rgb)) +
+  geom_stream(type = "proportional") +
+  scale_fill_identity()
+```
+
+
+
+## Treemap comparing years
+
+### Prepare data for treemaps
+
+```{r}
+library(treemapify)
+
+colors_year <- colors_in_sets %>% 
+  filter(name.color != "[Unknown]") %>% 
+  count(year, name.color, rgb, wt = quantity, name = "quantity")
+
+colors_years_agg_1 <- filter(colors_year, year >= 1987 & year <= 1992) %>% 
+    # summarize for the full period
+    count(rgb, wt = quantity, name = "quantity")
+
+# Create a dataset with treemap dimensions - years 1987 to 1992
+treemap_df_1 <- treemapify(
+  colors_years_agg_1,
+  area = "quantity",
+  subgroup = "rgb",
+  layout = "squarified"
+)
+
+
+colors_years_agg_2 <- filter(colors_year, year >= 2017 & year <= 2022) %>% 
+    # summarize for the full period
+    count(rgb, wt = quantity, name = "quantity")
+  
+treemap_df_2 <- treemapify(
+  colors_years_agg_2,
+  area = "quantity",
+  subgroup = "rgb",
+  layout = "squarified"
+)
+
+```
+
+
+### Plot the treemaps
+
+Plotting function
+
+```{r}
+# Show labels only for the more common colors above the threshold
+color_share_threshold <- 0.05
+
+plot_color_treemap <- function(df, colors_agg, color_share_threshold = 0.05) {
+  df %>% 
+    inner_join(colors_agg, by = "rgb") %>% 
+    mutate(
+      color_share = quantity / sum(quantity),
+      label = paste(rgb, scales::percent(color_share, accuracy = 0.1), sep = "<br>")) %>% 
+    ggplot(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax)) +
+    geom_rect(aes(fill = rgb), color = "white", size = 0.5) +
+    geom_richtext(
+      data = ~subset(., color_share > color_share_threshold),
+      aes(x = xmin, y = ymax, label = label),
+      inherit.aes = FALSE, hjust = 0, vjust = 1, fill = alpha("white", 0.5), label.size = 0,
+      nudge_x = 0.01, nudge_y = -0.015,
+      family = "Roboto Condensed", lineheight = 1, size = 3) +
+    scale_fill_identity() +
+    theme_treemap()
+
+}
+
+```
+
+
+1987 to 1992
+
+```{r}
+plot_color_treemap(treemap_df_1, colors_years_agg_1)  
+```
+
+
+2017 to 2022
+```{r}
+plot_color_treemap(treemap_df_2, colors_years_agg_2, color_share_threshold = 0.03)  
+```
+
+
+## "Cluster" by colors
+
+Add a subgroup for color variants so that the color treemap for today shows the greater diversity of color shades
+
+### By name
+
+```{r}
+color_group_names <- c("Red", "Blue", "Green", "Yellow", "Gray", "White", "Black", 
+                       "Brown", "Pink", "Violet", "Purple", "Orange")
+
+purple <- "Pink/Violet/Purple"
+
+color_groups <- lego$colors %>% 
+  filter(name != "[Unknown]") %>% 
+  transmute(name, 
+            rgb = paste0("#", rgb),
+            color_group = str_extract(name, paste(color_group_names, collapse = "|")),
+            color_group = replace_na(color_group, "Other"),
+            color_group = case_when(
+              color_group %in% c("Pink", "Violet", "Purple") ~ purple,
+              name %in% c("Magenta", "Lavender", "Coral") ~ purple,
+              str_detect(name, "Lavender") ~ purple,
+              str_detect(name, "(Lemon|Turquoise)") ~ "Green",
+              name == "Copper" ~ "Brown",
+              name == "Rust" ~ "Red",
+              str_detect(name, "Aqua") ~ "Green",
+              str_detect(name, "Lime") ~ "Green",
+              str_detect(name, "Salmon") ~ purple,
+              str_detect(name, "Azure") ~ "Blue",
+              str_detect(name, "\\b(Tan|Gold|Nougat)") ~ "Brown",
+              name == "Chrome Antique Brass" ~ "Brown",
+              TRUE ~ color_group
+            ))
+color_groups
+
+count(color_groups, color_group, sort = TRUE)
+
+```
+
+```{r}
+
+colors_years_agg_color_group_1 <- filter(colors_year, year >= 1987 & year <= 1992) %>% 
+    # summarize for the full period
+    count(rgb, wt = quantity, name = "quantity") %>% 
+  inner_join(color_groups, by = "rgb") %>% 
+  group_by(rgb) %>% 
+  slice_head(n = 1) %>% 
+  ungroup()
+  
+treemap_df_color_group_1 <- treemapify(
+  colors_years_agg_color_group_1,
+  area = "quantity",
+  subgroup = "color_group",
+  subgroup2 = "rgb",
+  layout = "squarified"
+)
+
+colors_years_agg_color_group_2 <- filter(colors_year, year >= 2017 & year <= 2022) %>% 
+    # summarize for the full period
+    count(rgb, wt = quantity, name = "quantity") %>% 
+  inner_join(color_groups, by = "rgb") %>% 
+  group_by(rgb) %>% 
+  slice_head(n = 1) %>% 
+  ungroup()
+  
+treemap_df_color_group_2 <- treemapify(
+  colors_years_agg_color_group_2,
+  area = "quantity",
+  subgroup = "color_group",
+  subgroup2 = "rgb",
+  layout = "squarified"
+)
+```
+
+
+```{r}
+
+plot_color_treemap_grouped <- function(df, color_agg) {
+   df %>%  #treemap_df_color_group_2 
+  inner_join(color_agg, by = c("rgb", "name", "color_group")) %>% #colors_years_agg_color_group_2
+  mutate(
+    color_share = quantity / sum(quantity),
+    label = paste(rgb, scales::percent(color_share, accuracy = 0.1), sep = "<br>")) %>% 
+  # calculate coordinates for subgroup borders manually
+  group_by(color_group) %>% 
+  mutate(
+    subgroup_xmin = min(xmin),
+    subgroup_xmax = max(xmax),
+    subgroup_ymin = min(ymin),
+    subgroup_ymax = max(ymax)
+  ) %>% 
+  ungroup %>% 
+  ggplot(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax)) +
+  geom_rect(aes(fill = rgb), color = "white", size = 0.1) +
+  geom_rect(
+    aes(xmin = subgroup_xmin, xmax = subgroup_xmax,
+        ymin = subgroup_ymin, ymax = subgroup_ymax),
+    color = "white", fill = NA, size = 0.8) +
+  # # debug: print color names
+  # ggrepel::geom_text_repel(aes(x = xmin, y = ymax, label = name), size = 2) +
+  geom_richtext(
+    data = ~subset(., color_share > color_share_threshold),
+    aes(x = xmin, y = ymax, label = label),
+    inherit.aes = FALSE, hjust = 0, vjust = 1, fill = alpha("white", 0.5), label.size = 0,
+    nudge_x = 0.01, nudge_y = -0.015,
+    family = "Roboto Condensed", lineheight = 1, size = 3) +
+  scale_fill_identity() +
+  theme_treemap()
+}
+
+```
+
+
+```{r}
+p_tm_1 <- plot_color_treemap_grouped(treemap_df_color_group_1, colors_years_agg_color_group_1)
+p_tm_1
+```
+
+```{r}
+p_tm_2 <- plot_color_treemap_grouped(treemap_df_color_group_2, colors_years_agg_color_group_2)
+p_tm_2
+```
+
+### Combine both periods in one plot
+
+```{r}
+library(patchwork)
+
+p_tm_1 + labs(subtitle = "Sets released<br>**1987 to 1992**") + 
+  p_tm_2 + labs(subtitle = "Sets released<br>**2017 to 2022**") + 
+  plot_annotation(
+    title = "The Diversified Colors of LEGO\U2122",
+    subtitle = "The number of different colors has changed substantially over the last decades.
+    Each treemap presents the share of parts with the respective colors.<br>
+    The number of sets released has increased as well, which is not shown in this chart.",
+    caption = plot_caption
+  ) +
+  plot_layout() 
+
+ggsave(here(base_path, "plots", "lego-colors-treemap-1992-vs-2022.png"),
+       width = 10, height = 6)
+
+```
+
+
+## Most frequent colors share of all parts
+
+Which were the most common colors in 1987 to 1992?
+
+```{r}
+frequent_colors_1 <- colors_years_agg_color_group_1 %>% 
+  arrange(-quantity) %>% 
+  mutate(share = quantity / sum(quantity)) %>% 
+  filter(share > 0.05)
+
+frequent_colors_1
+main_colors <- frequent_colors_1$rgb
+sum(frequent_colors_1$share)
+
+```
+
+What's their share in 2017 to 2022?
+
+```{r}
+colors_years_agg_color_group_2 %>% 
+  arrange(-quantity) %>% 
+  mutate(share = quantity / sum(quantity)) %>% 
+  filter(rgb %in% main_colors)
+
+colors_years_agg_color_group_2 %>% 
+  arrange(-quantity) %>% 
+  mutate(share = quantity / sum(quantity)) %>% 
+  filter(rgb %in% main_colors) %>% 
+  summarize(combined_share = sum(share))
+
+
+```
+
+### Year-by-year trend
+
+
+The default gray from 1987 (Light Gray, #C91A09) seems to have been replaced with another one in the early 2000s (Light Bluish Gray, #A0A5A9).
+
+```{r}
+# recode gray tones
+old_light_gray <- "#C91A09"
+new_light_bluish_gray <- "#A0A5A9"
+main_colors <- c(main_colors, new_light_bluish_gray)
+
+light_gray_note <- "The default gray from 1987 (Light Gray, #C91A09) has been replaced
+      with another one in the early 2000s (Light Bluish Gray, #A0A5A9).<br>This is accounted for in the plot.<br>"
+
+colors_year %>% 
+  filter(year >= 1987) %>% 
+  group_by(year) %>% 
+  mutate(share = quantity / sum(quantity)) %>% 
+  ungroup() %>% 
+  filter(rgb %in% main_colors) %>% 
+  group_by(year, rgb) %>% 
+  summarize(
+    quantity = sum(quantity),
+    share = sum(share)
+  ) %>% 
+  # calculate the combined share of the main colors
+  summarize(combined_share = sum(share)) %>% 
+  ggplot(aes(year, combined_share)) +
+  geom_line(size = 1) +
+  geom_point(
+    data = ~subset(., year == min(year) | year == max(year)),
+    size = 2
+  ) +
+  geom_text(
+    data = ~subset(., year == min(year) | year == max(year)),
+    aes(label = scales::percent(combined_share), hjust = ifelse(year == min(year), 1.3, -0.3)),
+    size = 4
+  ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0.25, NA)) +
+  coord_cartesian(clip = "off") +
+  labs(
+    title = "In 1987, 6 colors accounted for almost all LEGO parts",
+    subtitle = "Combined share of the 6 main colors from 1987",
+    caption = paste(
+      light_gray_note, 
+      plot_caption, sep = "<br>"),
+    x = NULL, y = NULL
+  )
+
+ggsave(here(base_path, "plots", "lego-colors-main-colors-line.png"), width = 8, height = 6)
+```
+
+### Area chart
+
+
+```{r}
+
+colors_year %>% 
+  filter(year >= 1987) %>% 
+  group_by(year) %>% 
+  mutate(share = quantity / sum(quantity)) %>% 
+  ungroup() %>% 
+  filter(rgb %in% main_colors) %>% 
+  group_by(year, rgb) %>% 
+  summarize(
+    quantity = sum(quantity),
+    share = sum(share),
+    .groups = "drop"
+  ) %>% 
+  mutate(rgb = fct_reorder(rgb, share)) %>% 
+  ggplot(aes(year, share, fill = rgb)) +
+  geom_area() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 1)) +
+  scale_fill_identity() +
+  coord_cartesian(clip = "off", expand = FALSE) +
+  labs(
+    title = "In 1987, 6 colors accounted for almost all LEGO parts",
+    subtitle = "Combined share of the 6 main colors from 1987",
+    caption = paste(
+      light_gray_note, 
+      plot_caption, sep = "<br>"),
+    x = "Release year", y = NULL
+  ) +
+  theme(
+    panel.background = element_rect(color = "grey70", size = 0.2, fill = NA),
+    axis.text = element_text(margin = margin(t = 4)),
+    plot.subtitle = element_textbox(
+      margin = margin(t = 4, b = 8)
+    )
+  )
+ggsave(here(base_path, "plots", "lego-colors-area.png"), width = 8, height = 6)
+
+```
+
+
