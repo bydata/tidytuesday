@@ -99,13 +99,13 @@ p <- df_plot_anim %>%
   guides(fill = "none", color = "none") +
   labs(
     title = "Hindsight Bias",
-    subtitle = "If had you invested 100 US-$ on one of these Tech stocks 10 years
+    subtitle = "If had you invested 100 US-$ in one of these Tech stocks 10 years
     <br>ago, how much would would it be worth today?
     <br>
     <br><span style='font-size: 18pt; color: #888888; font-family: Chivo'>
     {format(frame_time, '%Y (%B)')}</span>",
     caption = "The closing price of the first day of a month after adjustments 
-    for all applicable splits and dividend distributions is shown.<br>
+    for all applicable splits and dividend distributions is shown.
     **Source:** Yahoo Finance. **Icons:** icons8.de, flaticon.com. 
     **Visualisation:** Ansgar Wolsing"
   )  +
