@@ -125,6 +125,8 @@ p_anim <- p +
   transition_time(month) +
   view_follow(fixed_x = FALSE, fixed_y = TRUE)
 
+fps <- 12
 animate(p_anim, ref_frame = 1, nframes = length(unique(df_plot_anim$month)) * 5,
-        res = 150, width = 720, height = 800, fps = 12)
+        end_pause = 2 * fps,
+        res = 150, width = 720, height = 800, fps = fps, bg = "grey90")
 anim_save(here("2023", "06", "hindsight-bias.gif"))
