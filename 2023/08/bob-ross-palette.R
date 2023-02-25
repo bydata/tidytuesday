@@ -84,6 +84,7 @@ color_df_plot <- data.frame(
   mutate(color_share = n / sum(n))
 
 ggplot() +
+  # Shapes for the palette
   geom_bspline_closed( 
     data = spline_controls, 
     aes(x + 0.003, y + 0.007),
@@ -94,12 +95,15 @@ ggplot() +
     aes(x, y),
     fill = "grey92", col = darken("grey87", 0.2), size = 0.25, 
     alpha = 0.7) +
+  
   geom_point(
     data = color_df_plot,
     aes(x, y, fill = hex, size = color_share, 
         col = stage(after_scale = darken(fill, 0.1))),
     stroke = 1.25, shape = 21
   ) +
+  
+  # Custom title + subtitle
   annotate(
     GeomTextBox,
     x = -0.25, y = 0.67,
@@ -111,8 +115,7 @@ ggplot() +
     The actual colours used in the paintings were reduced to 24 colours using 
     an Adaptive Spatial Subdivision algorithm. 
     The colour bubbles are sized proportional to the area covered by this 
-    particular colour.
-    ",
+    particular colour.",
     family = "Georgia", size = 5, lineheight = 1.2,
     box.size = 0, fill = NA
   ) +
@@ -124,7 +127,7 @@ ggplot() +
   guides(size = guide_legend(
     title = "Area covered",
     title.position = "top",
-    override.aes = list(color = "grey80", fill = "grey92"))) +
+    override.aes = list(color = "grey80", fill = "grey92", stroke = 0.75))) +
   labs(
     caption = "Source: Jared Wilber's data on Bob Ross Paintings, own calculations.
     Visualisation: Ansgar Wolsing"
@@ -145,6 +148,7 @@ ggplot() +
       family = "Georgia", face = "bold", color = "grey40", size = 12),
     legend.text = element_text(size = 12, family = "Open Sans"),
     legend.position = c(0.95, 0.3),
-    legend.direction = "vertical"
+    legend.direction = "vertical",
+    legend.key.height = unit(2, "mm")
   )
 ggsave(here::here("2023", "08", "bob-ross-palette.png"), width = 8.5, height = 7.5)
