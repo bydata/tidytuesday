@@ -61,7 +61,8 @@ colors_combined %>%
   ggplot(aes(hex, n, fill = hex)) +
   geom_col(show.legend = FALSE) +
   scale_fill_identity() +
-  coord_flip()
+  coord_flip() +
+  theme_light()
 
 
 # Points to define the palette spline
@@ -94,7 +95,7 @@ ggplot() +
     data = spline_controls, 
     aes(x, y),
     fill = "grey92", col = darken("grey87", 0.2), size = 0.25, 
-    alpha = 0.7) +
+    alpha = 0.7)
   
   geom_point(
     data = color_df_plot,
@@ -152,3 +153,17 @@ ggplot() +
     legend.key.height = unit(2, "mm")
   )
 ggsave(here::here("2023", "08", "bob-ross-palette.png"), width = 8.5, height = 7.5)
+
+
+library(treemapify)
+
+# Print colors in a simple plot
+colors_combined %>% 
+  mutate(hex = fct_reorder(hex, n)) %>% 
+  ggplot(aes(fill = hex, area = n, subgroup = hex)) +
+  geom_treemap() +
+  geom_treemap_subgroup_border(color = "white", size = 1.5) +
+  # geom_treemap_subgroup_text(color = "grey80") +
+  scale_fill_identity() +
+  coord_flip() +
+  theme_light()
