@@ -3,6 +3,7 @@ library(ggforce)
 library(magick)
 library(colorspace)
 library(ggtext)
+# remotes::install_github("briandconnelly/colormod")
 
 # Read in the data
 bob_ross <- read_csv(
@@ -22,8 +23,8 @@ if (!dir.exists(image_dir)) {
         ~download.file(.x, destfile = file.path(image_dir, .y)))
 }
 
-
 # https://www.r-bloggers.com/2019/01/extracting-colours-from-your-images-with-image-quantization/
+# found at https://twitter.com/amc_corporation/status/1628571717454143488
 get_colorPal <- function(im, n = 8, cs = "RGB") {
   tmp <- im %>% 
     image_resize("100") %>%
@@ -49,26 +50,58 @@ get_colorPal <- function(im, n = 8, cs = "RGB") {
 # read images
 imgs <- map(image_filenames, ~image_read(file.path(image_dir, .x)))
 
-# Stack all paintings into a single image
-images_combined <- image_append(reduce(imgs, c), stack = TRUE)
-# image_write(images_combined, here::here("2023", "08", "img-comb.png"))
-# Extract colors from the combined images
-colors_combined <- get_colorPal(images_combined, n = 24)
+# extract colours from paintings
+extracted_colors_by_painting <- map(imgs, get_colorPal, n = 24)
+extracted_colors_all <- extracted_colors_by_painting %>%
+  bind_rows(.id = "id") 
+
+extracted_colors_all %>%
+  group_by(hex, hue, sat, value) %>%
+  summarize(n = sum(n), .groups = "drop") %>%
+  arrange(desc(n))
+
+# k-means clustering of colors
+k <- 14
+set.seed(123)
+clustered_colors <- kmeans(select(foo, hue, sat, value), k)
+table(clustered_colors$cluster)
+clustered_colors$centers
+
+clustered_colors_df <- tibble(
+  cluster = seq_len(k),
+  as.data.frame(clustered_colors$centers),
+  n = as.integer(table(clustered_colors$cluster))
+)
+head(clustered_colors_df)
+
+# convert hsv to rgb and return hex colour codes
+hsv_rgb <- function(hue, sat, value) {
+  m <- as.matrix(c(h = hue / 360, s = sat, v = value)) %>% 
+    colormod::hsv2rgb() %>% 
+    t()
+  rgb(m[, "red"], m[, "green"], m[, "blue"], maxColorValue = 255)
+}
+
+# generate color hex codes
+clustered_colors_df$hex <- pmap_chr(select(clustered_colors_df, hue, sat, value), hsv_rgb)
+head(clustered_colors_df)
+
 
 # Print colors in a simple plot
-colors_combined %>% 
+clustered_colors_df %>% 
   mutate(hex = fct_reorder(hex, n)) %>% 
   ggplot(aes(hex, n, fill = hex)) +
   geom_col(show.legend = FALSE) +
   scale_fill_identity() +
   coord_flip() +
   theme_light()
+ggsave(here::here("2023", "08", "bob-ross-palette-barchart.png"), width = 8.5, height = 7.5)
 
 
 # Points to define the palette spline
 spline_controls <- data.frame(
-  x = -c(0.58, 0.1, 0.27, 0.34, 0.32, 0.9),
-  y = c(0.04, 0.30, 0.34, 0.28, 0.85, 0.24)
+  x = -c(0.6, 0.1, 0.27, 0.34, 0.32, 0.9),
+  y = c(0.05, 0.30, 0.34, 0.28, 0.85, 0.24)
 )
 
 color_coordinates <- data.frame(
@@ -77,12 +110,17 @@ color_coordinates <- data.frame(
   y =  c(0.20, 0.27, 0.34, 0.40, 0.46, 0.51, 0.56,
          0.23, 0.28, 0.34, 0.40, 0.46, 0.51, 0.56)
 )
+color_coordinates$x + 0.1
+
 
 color_df_plot <- data.frame(
-  head(select(colors_combined, hex, n), nrow(color_coordinates)),
+  head(select(clustered_colors_df, hex, n), nrow(color_coordinates)),
   color_coordinates
 ) %>% 
-  mutate(color_share = n / sum(n))
+  mutate(color_share = n / sum(n),
+         hex = fct_reorder(hex, n)) %>% 
+  arrange(hex)
+  
 
 ggplot() +
   # Shapes for the palette
@@ -95,8 +133,7 @@ ggplot() +
     data = spline_controls, 
     aes(x, y),
     fill = "grey92", col = darken("grey87", 0.2), size = 0.25, 
-    alpha = 0.7)
-  
+    alpha = 0.7) +
   geom_point(
     data = color_df_plot,
     aes(x, y, fill = hex, size = color_share, 
@@ -113,17 +150,18 @@ ggplot() +
     label = "<b style='font-size:20pt'>Bob Ross's Palette</b><br><br>
     The most frequent colours in the 403 paintings created by Bob Ross
     in his T.V. show *The Joy of Painting*. 
-    The actual colours used in the paintings were reduced to 24 colours using 
-    an Adaptive Spatial Subdivision algorithm. 
-    The colour bubbles are sized proportional to the area covered by this 
-    particular colour.",
-    family = "Georgia", size = 5, lineheight = 1.2,
+    The colours used in each paintings were reduced to 24 colours using 
+    an Adaptive Spatial Subdivision algorithm. The resulting colours were clustered
+    into 14 colour groups using k-means. The 'center' colour is displayed.
+    The bubbles are sized proportional to the area covered by this 
+    particular colour cluster.",
+    family = "Georgia", size = 4.5, lineheight = 1.2,
     box.size = 0, fill = NA
   ) +
   scale_x_continuous(limits = c(-0.9, 0.15)) +
   scale_color_identity() +
   scale_fill_identity() +
-  scale_size_area(max_size = 28, labels = scales::percent_format()) + 
+  scale_size_area(max_size = 20, labels = scales::percent_format()) + 
   coord_cartesian(clip = "off") +
   guides(size = guide_legend(
     title = "Area covered",
@@ -158,12 +196,18 @@ ggsave(here::here("2023", "08", "bob-ross-palette.png"), width = 8.5, height = 7
 library(treemapify)
 
 # Print colors in a simple plot
-colors_combined %>% 
-  mutate(hex = fct_reorder(hex, n)) %>% 
-  ggplot(aes(fill = hex, area = n, subgroup = hex)) +
+clustered_colors_df %>% 
+  mutate(color_share = n / sum(n),
+    hex = fct_reorder(hex, n)) %>% 
+  ggplot(
+    aes(fill = hex, area = n, 
+        subgroup = sprintf("%s (%0.1f %%)", hex, 100 * color_share))) +
   geom_treemap() +
   geom_treemap_subgroup_border(color = "white", size = 1.5) +
-  # geom_treemap_subgroup_text(color = "grey80") +
+  geom_treemap_subgroup_text(color = "grey18", family = "Roboto Condensed") +
   scale_fill_identity() +
   coord_flip() +
   theme_light()
+ggsave(here::here("2023", "08", "bob-ross-palette-treemap.png"), width = 8.5, height = 7.5)
+
+
